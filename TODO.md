@@ -1,2 +1,0 @@
-## 1. Determine tools to use
-A list of preliminary tools (inspired by [yizhe-ang.github.io/matrix-explorable](https://yizhe-ang.github.io/matrix-explorable/)) has been added to the README, under credits. The four added are visualization helper tools (e.g. Threlte, GSAP). Decide whether these are appropriate for this project based on what kinds of animations and visuals are necessary. 

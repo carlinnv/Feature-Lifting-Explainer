@@ -3,15 +3,23 @@
 	import { NoToneMapping } from "three";
 	import Scrolly from "$components/helpers/Scrolly.svelte";
 	import Scene from "$components/three/Scene.svelte";
-	import { lineScore, COLORS } from "$stores/explainer.svelte.js";
+	import Readout from "$components/Readout.svelte";
+	import {
+		lineScore,
+		planeScore,
+		plane,
+		PLANE_MIN,
+		PLANE_MAX,
+		COLORS
+	} from "$stores/explainer.svelte.js";
 	import { circles } from "$data/circles.js";
 
 	let scrollIndex = $state(undefined);
 	// Before any step is in view, show the first step's visual.
 	const step = $derived(scrollIndex ?? 0);
 
-	const score = $derived(lineScore.current);
-	const pct = $derived(Math.round(score.accuracy * 100));
+	const lineCorrect = $derived(Math.round(lineScore.current.accuracy * circles.length));
+	const planeCorrect = $derived(planeScore.current.correct);
 </script>
 
 <header class="intro">
@@ -56,14 +64,7 @@
 							<strong>Try it yourself:</strong> drag the two white handles to move the line. Can you
 							find a line that separates the red points from the blue ones?
 						</p>
-						<div class="readout" aria-live="polite">
-							<span class="readout-label">Accuracy</span>
-							<span class="readout-value">{pct}%</span>
-							<div class="bar"><div class="bar-fill" style:width="{pct}%"></div></div>
-							<span class="readout-note"
-								>{Math.round(score.accuracy * circles.length)} of {circles.length} points on the correct side</span
-							>
-						</div>
+						<Readout correct={lineCorrect} total={circles.length} />
 					</div>
 				</div>
 
@@ -98,6 +99,34 @@
 							farther out have a larger <i>z</i>, so the
 							<strong style:color={COLORS.red}>red</strong> points rise up the sides.
 						</p>
+					</div>
+				</div>
+
+				<!-- 4.3, step 4: slide a plane to separate the classes -->
+				<div class="step" class:active={step === 4}>
+					<div class="card">
+						<p>
+							In 3D, a linear classifier splits the space with a flat <strong>plane</strong> instead
+							of a line. Here, points below the plane are predicted
+							<strong style:color={COLORS.blue}>blue</strong> and points above it are predicted
+							<strong style:color={COLORS.red}>red</strong>.
+						</p>
+						<p>
+							<strong>Try it yourself:</strong> slide the plane up and down. Can you separate the
+							classes now?
+						</p>
+						<label class="slider">
+							<span class="slider-label">Plane height <i>z</i></span>
+							<input
+								type="range"
+								min={PLANE_MIN}
+								max={PLANE_MAX}
+								step="0.05"
+								bind:value={plane.t}
+							/>
+							<span class="slider-value">{plane.t.toFixed(2)}</span>
+						</label>
+						<Readout correct={planeCorrect} total={circles.length} />
 					</div>
 				</div>
 			</Scrolly>
@@ -161,48 +190,29 @@
 		font-size: var(--16px, 16px);
 	}
 
-	.readout {
+	.slider {
 		display: grid;
-		grid-template-columns: auto 1fr;
-		align-items: baseline;
-		gap: 0.25rem 1rem;
+		grid-template-columns: auto 1fr auto;
+		align-items: center;
+		gap: 0.75rem;
 		margin-top: 1rem;
-		padding-top: 1rem;
-		border-top: 1px solid var(--color-border);
 		font-family: var(--font-sans);
+		font-size: var(--14px, 14px);
 	}
 
-	.readout-label {
-		font-size: var(--14px, 14px);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
+	.slider-label {
 		color: var(--color-fg-light);
 	}
 
-	.readout-value {
-		justify-self: end;
-		font-size: var(--32px, 32px);
-		font-weight: 700;
+	.slider input {
+		width: 100%;
+		accent-color: #d9a400;
+	}
+
+	.slider-value {
+		min-width: 2.5rem;
+		text-align: right;
 		font-variant-numeric: tabular-nums;
-	}
-
-	.bar {
-		grid-column: 1 / -1;
-		height: 0.5rem;
-		background: var(--color-gray-200);
-		border-radius: 999px;
-		overflow: hidden;
-	}
-
-	.bar-fill {
-		height: 100%;
-		background: var(--color-gray-800);
-	}
-
-	.readout-note {
-		grid-column: 1 / -1;
-		font-size: var(--14px, 14px);
-		color: var(--color-fg-light);
 	}
 
 	/* phones/narrow screens: visual pinned to the top half, text scrolls underneath */

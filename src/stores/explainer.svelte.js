@@ -1,6 +1,7 @@
 // Shared state between the Threlte scene (left) and the step text (right).
 import { circles } from "$data/circles.js";
 import { scoreSplit } from "$utils/linearSplit.js";
+import { scorePlane } from "$utils/lift.js";
 
 export const COLORS = {
 	blue: "#4477AA",
@@ -16,5 +17,17 @@ export const line = $state({
 export const lineScore = {
 	get current() {
 		return scoreSplit(line.A, line.B, circles);
+	}
+};
+
+// Section 4.3: height of the horizontal separating plane, in unscaled z units.
+// Starts low (below most blue points) so the user has to find the split.
+export const PLANE_MIN = 0;
+export const PLANE_MAX = 6;
+export const plane = $state({ t: 0.3 });
+
+export const planeScore = {
+	get current() {
+		return scorePlane(plane.t, circles);
 	}
 };

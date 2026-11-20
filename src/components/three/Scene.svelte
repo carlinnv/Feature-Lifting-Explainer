@@ -12,6 +12,8 @@
 	import Points from "./Points.svelte";
 	import SplitLine from "./SplitLine.svelte";
 	import Bowl from "./Bowl.svelte";
+	import SeparatingPlane from "./SeparatingPlane.svelte";
+	import { plane } from "$stores/explainer.svelte.js";
 
 	let { step = 0 } = $props();
 
@@ -25,9 +27,10 @@
 	const showBowl = $derived(step >= 3);
 	// Rotation is introduced with the bowl ("Try it yourself: drag the plot…"), not before.
 	const canRotate = $derived(step >= 3);
+	const showPlane = $derived(step >= 4);
 
 	// Animated values (tweened by GSAP, read reactively by child components).
-	const anim = $state({ lift: 0, bowl: 0 });
+	const anim = $state({ lift: 0, bowl: 0, plane: 0 });
 	let animating = $state(false);
 
 	// Fit the plot into the shorter canvas side; zoom out a bit in 3D for the tilted bowl.
@@ -96,6 +99,14 @@
 		});
 	});
 
+	$effect(() => {
+		const on = showPlane;
+		untrack(() => {
+			gsap.killTweensOf(anim, "plane");
+			gsap.to(anim, { plane: on ? 1 : 0, duration: 0.8, ease: "power1.out" });
+		});
+	});
+
 	// OrbitControls disables touch scrolling on the canvas when it is created. Only block
 	// touch scrolling on steps where dragging on the canvas does something.
 	$effect(() => {
@@ -124,6 +135,7 @@
 <Axes lift={anim.lift} />
 <Points lift={anim.lift} />
 <Bowl opacity={anim.bowl} />
+<SeparatingPlane t={plane.t} opacity={anim.plane} />
 
 {#if showLine}
 	<SplitLine />

@@ -21,7 +21,7 @@
 
 <svelte:boundary onerror={(e) => console.error(e)}>
 	<section class="explainer">
-		<div class="visual" class:interactive={step >= 1}>
+		<div class="visual">
 			<Canvas toneMapping={NoToneMapping}>
 				<Scene {step} />
 			</Canvas>
@@ -66,6 +66,32 @@
 						</div>
 					</div>
 				</div>
+
+				<!-- 4.2, step 2: lift into 3D -->
+				<div class="step" class:active={step === 2}>
+					<div class="card">
+						<p>A straight line can't do it. But what if we gave the classifier a third feature?</p>
+						<p>
+							We can build one from the two we already have:
+							<i>z</i> = <i>x</i><sub>1</sub><sup>2</sup> + <i>x</i><sub>2</sub><sup>2</sup>, the
+							squared distance from the origin. Points near the center get a small <i>z</i>; points
+							far away get a large one.
+						</p>
+						<p>Watch as each point is lifted to its height <i>z</i>.</p>
+					</div>
+				</div>
+
+				<!-- 4.2, step 3: rotate and see the bowl -->
+				<div class="step" class:active={step === 3}>
+					<div class="card">
+						<p><strong>Try it yourself:</strong> drag the plot to rotate it.</p>
+						<p>
+							The points now sit on a bowl. The
+							<strong style:color={COLORS.blue}>blue</strong> points are near the bottom, and the
+							<strong style:color={COLORS.red}>red</strong> points are up the sides.
+						</p>
+					</div>
+				</div>
 			</Scrolly>
 		</div>
 	</section>
@@ -93,11 +119,6 @@
 		position: sticky;
 		top: 0;
 		height: 100vh;
-	}
-
-	/* let the canvas own touch gestures only while the line is draggable */
-	.visual.interactive {
-		touch-action: none;
 	}
 
 	.steps {

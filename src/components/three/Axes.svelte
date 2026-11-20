@@ -4,6 +4,10 @@
 	import { HTML } from "@threlte/extras";
 	import { EXTENT } from "$data/circles.js";
 
+	// lift (0 → 1) grows the z axis out of the floor in section 4.2
+	let { lift = 0 } = $props();
+
+	const Z_AXIS_H = 3.4;
 	const AXIS_W = 0.025;
 	const GRID_W = 0.01;
 	const span = 2 * EXTENT;
@@ -56,6 +60,19 @@
 <HTML position={[0, EXTENT + 0.35, 0]} center pointerEvents="none">
 	<span class="axis-label">x<sub>2</sub></span>
 </HTML>
+
+<!-- z axis (the constructed feature) -->
+{#if lift > 0.001}
+	<T.Mesh position={[0, 0, (Z_AXIS_H * lift) / 2]} scale.z={lift}>
+		<T.BoxGeometry args={[AXIS_W * 1.5, AXIS_W * 1.5, Z_AXIS_H]} />
+		<T.MeshBasicMaterial color="#888888" />
+	</T.Mesh>
+	<HTML position={[0, 0, Z_AXIS_H * lift + 0.3]} center pointerEvents="none">
+		<span class="axis-label" style:opacity={lift}
+			>z = x<sub>1</sub><sup>2</sup> + x<sub>2</sub><sup>2</sup></span
+		>
+	</HTML>
+{/if}
 
 <style>
 	.axis-label {

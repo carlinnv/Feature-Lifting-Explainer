@@ -91,3 +91,10 @@ svg {
 	width: 100%;
 	height: auto;
 }
+/* normalize.css shrinks <sup> twice (75% font-size + font-variant-position: super),
+   which makes exponents like x₁² nearly unreadable. Keep just the size reduction. */
+sup {
+	font-variant-position: normal;
+	font-size: 70%;
+	top: -0.55em;
+}

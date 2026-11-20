@@ -894,3 +894,62 @@
 **Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Headless Chrome (desktop 1400×900), no console errors: before solving, the screenshot shows the shading (with x₁² + x₂², inside the circle red and the corners blue); the submit flow is unchanged (wrong Submit message at 50%, readout hidden until a correct Submit, 3D view and note shown after it, reset after scrolling away and back).
 
 **Next Steps:** User review.
+
+## 2026-11-20: Student-perspective review; linear/nonlinear explanation made part of the main flow
+
+**Task:** (1) "pretend that you are a student with basic mathematical knowledge (up to linear algebra) and basic AI/ML knowledge … go through each section. are there any areas that are confusing, particularly with the linear/nonlinear problem area" (2) "make the explanation non-optional. i removed the 'The cut is flat; the circle comes from the feature.' sentence because it sounds confusing to me. what does 'the circle comes from the feature' mean? reword this part and add it back into the explanation. then, we will fix steps 3 and 4 (leave it for now)"
+
+**Changes (completed, by Claude Code):**
+- Review (no code changes; findings by Claude Code). Main finding: the page never says what "linear" refers to (linear in the features the classifier is given), and the only explanation sat in an optional detour that explained why the boundary is a *circle* but, after the user removed the closing sentence, no longer why it is still *linear*. Other findings: "distance" vs. "squared distance" in 4.2; no answer to "are we allowed to construct features?"; the horizontal-only plane in 4.3 raises "is the classifier ignoring x₁, x₂?"; "It lands as a circle" in 4.4 reads as if the whole plane becomes a circle; 4.5 says "slide the plane" before any plane is visible, "whichever class fits it better" is hard to parse, and the "Why does it work?" note could tie the hyperbola back to the main idea.
+- Made the explanation step non-optional: removed the "Confused how the circle still counts…?" jump link from the step 6 card (and its `scrollToStep` function and `.jump-link` styles). Step 7 is now a regular step, retitled "How can a flat cut make a circle?" (title by Claude Code, since the "Confused…?" wording framed it as optional).
+- Replaced the removed sentence with a new paragraph (wording by Claude Code): "So the classifier is still linear: in the features it's given (x₁, x₂ and z), its boundary is perfectly flat. The circle only appears when we look back at the original x₁, x₂ plot. Since z measures how far a spot is from the center, 'z < {cut}' really means 'close to the center', and all the spots close enough to the center fill in a circle." The cut value is live.
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** None in the app. (A first attempt at the test script was empty because of a scratchpad scripting mistake; rewritten and rerun.)
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no new warnings. Headless Chrome at desktop 1400×900 and phone 390×844, no console errors: no jump link at step 6; step 7 shows the new title and paragraph with "z < 2.9" filled in (after the snap to a 100% cut); phone screenshot shows the longer card fits.
+
+**Next Steps (planned, not done):** Review items 3 and 4, deferred by the user: reword "It lands as a circle" in 4.4, and in 4.5 fix "slide the plane" (no plane visible before solving) and use the "Why does it work?" note to tie the hyperbola back to the main idea. Other review items (squared distance, "are we allowed?", horizontal-only plane) are open.
+
+## 2026-11-20: Section 4.4, collapse wording clarified ("It lands as a circle")
+
+**Task:** "now fix step 3" (review item 3: "It lands as a circle" reads as if the whole plane becomes a circle)
+
+**Changes (completed, by Claude Code; wording by Claude Code):** In the step 5 card:
+- Question: "So what does the plane do to our original 2D data?" → "So what does this split look like back in our original 2D plot?"
+- After collapsing: "It lands as a circle." → "The dashed line where the plane cuts through the bowl drops straight down onto the plot as a circle." The rest of the sentence (inside blue, outside red) and the show-after-collapse behavior are unchanged.
+- Reasoning: names the specific thing that becomes the circle (the dashed intersection line the reader sees in 3D, which the animation flattens), so the plane itself isn't read as turning into a circle.
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** None.
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no new warnings. Headless Chrome at desktop 1400×900 and phone 390×844, no console errors: before clicking Collapse, the card shows only the question and prompt; after, the new sentence appears; desktop screenshot shows it beside the flattened dashed circle.
+
+**Next Steps (planned, not done):** Review item 4 (section 4.5: "slide the plane" before any plane is visible; "Why does it work?" note and the hyperbola).
+
+## 2026-11-20: Section 4.5 wording: cut instead of an unseen plane; "Why does it work?" ties back to the main idea
+
+**Task:** "fix issue 4 and summarize the specific points you changed" (review item 4: "slide the plane" before any plane is visible; "whichever class fits it better" hard to parse; the "Why does it work?" note could tie the 2D boundary back to the main idea)
+
+**Changes (completed, by Claude Code; wording by Claude Code):**
+- "Try it yourself" paragraph: "pick a feature to lift the points with, then slide the plane. Each side of the plane is predicted whichever class fits it better." → "pick a feature, then slide the cut value. The gold boundary marks every spot where z equals the cut. Points on one side are predicted blue and points on the other side red, whichever way gets more points right." Reason: before solving, only the 2D view is shown, so there is no plane to see.
+- Slider label: "Plane height" → "Cut at z =" (matches the "a cut at one value of z" framing from step 7).
+- Wrong-Submit message: "Try moving the plane…" → "Try moving the cut…".
+- "Why does it work?" note: after "…the red points drop below it", added "so one flat cut separates them. Back on the 2D plot, that same flat cut is the gold boundary where x₁ · x₂ equals the cut you found, which hugs the two axes instead of forming a circle. A different feature gives a different shape, but the classifier is still just one flat cut." Then the existing "Try the other features…" sentence.
+- Decisions: said "hugs the two axes" rather than "hyperbola", because at a cut of exactly 0 the boundary x₁·x₂ = 0 is the axes themselves. Did not show the live cut value in the note, since the note stays visible if the reader switches features afterwards and the number would then belong to a different feature.
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** None.
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no new warnings. Headless Chrome at desktop 1400×900 and phone 390×844, no console errors: new paragraph and slider label render; wrong Submit shows "Not quite: 50 of 100 … Try moving the cut or picking a different feature."; with x₁·x₂ at cut 0, Submit reveals the 3D view, 100% readout and the new note; scrolling away and back resets.
+
+**Next Steps (planned, not done):** Open review items: squared vs. plain distance (4.2), "are we allowed to construct features?" (4.2), horizontal-only plane (4.3).

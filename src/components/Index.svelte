@@ -35,14 +35,6 @@
 		explainerEl?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
 	}
 
-	// In-text links that glide to a later step (e.g. 4.4's optional "Confused…?" explainer).
-	function scrollToStep(i) {
-		const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-		document
-			.querySelectorAll(".step")
-			[i]?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
-	}
-
 	let scrollIndex = $state(undefined);
 
 	// 4.2: the "distance from the center" answer is hidden behind a Reveal answer button.
@@ -51,10 +43,10 @@
 	const step = $derived(scrollIndex ?? 0);
 
 	// The reader's chosen plane height as plain text (2.90 → "2.9", 5.00 → "5"), for the
-	// "Confused…?" step's "points with z < … are predicted blue" sentence.
+	// "How can a flat cut make a circle?" step's "points with z < … are predicted blue" sentence.
 	const cutValue = $derived(String(Number(plane.t.toFixed(2))));
 
-	// Entering the "Confused…?" step snaps the plane to a 100% cut (user decision), so the
+	// Entering the "How can a flat cut…?" step snaps the plane to a 100% cut (user decision), so the
 	// sentence above describes a perfect split. The perfect range is found once by scanning the
 	// slider's own steps; the plane glides to the middle of that range. If it was moved, a
 	// short note says so.
@@ -109,7 +101,7 @@
 			challenge.revealed = true;
 			submitMessage = "";
 		} else {
-			submitMessage = `Not quite: ${challengeCorrect} of ${xor.length} points are on the correct side. Try moving the plane or picking a different feature.`;
+			submitMessage = `Not quite: ${challengeCorrect} of ${xor.length} points are on the correct side. Try moving the cut or picking a different feature.`;
 		}
 	}
 	$effect(() => {
@@ -345,14 +337,17 @@
 				<!-- 4.4, step 5: collapse back into 2D -->
 				<div class="step" class:active={step === 5}>
 					<div class="card">
-						<p>So what does the plane do to our original 2D data?</p>
+						<p>So what does this split look like back in our original 2D plot?</p>
 						<p>
 							Click <strong>Collapse into 2D</strong> above the graph to see!
 						</p>
-						<!-- Hidden until the user collapses the graph, then appears right away (user decision). -->
+						<!-- Hidden until the user collapses the graph, then appears right away (user decision).
+						     Reworded so the circle is the dashed line where the plane meets the bowl, not the
+						     whole plane (wording by Claude Code). -->
 						{#if collapse.on}
 							<p in:fade={{ duration: 300 }}>
-								It lands as a <strong>circle</strong>. Points inside the circle are predicted
+								The dashed line where the plane cuts through the bowl drops straight down onto the
+								plot as a <strong>circle</strong>. Points inside the circle are predicted
 								<strong style:color={COLORS.blue}>blue</strong>, and points outside are predicted
 								<strong style:color={COLORS.red}>red</strong>.
 							</p>
@@ -381,20 +376,15 @@
 							<span class="slider-value">{plane.t.toFixed(2)}</span>
 						</label>
 						<Readout correct={planeCorrect} total={circles.length} />
-						<!-- Optional detour (user decision): glides down to the "Confused…" step below. -->
-						<button class="jump-link" onclick={() => scrollToStep(7)}>
-							<span>Confused how the circle still counts as a linear classifier?</span>
-							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
-						</button>
 					</div>
 				</div>
 
-				<!-- 4.4, step 7 (optional explainer): why the circle still comes from a linear classifier.
+				<!-- 4.4, step 7: why the circle still comes from a linear classifier (part of the main flow).
 				     The plane is a cut at one z value; the contour rings (z = 1…6) in the 2D view show
 				     every such cut is a circle. Draft wording by Claude Code. -->
 				<div class="step" class:active={step === 7}>
 					<div class="card">
-						<h3 class="card-title">Confused how the circle still counts as a linear classifier?</h3>
+						<h3 class="card-title">How can a flat cut make a circle?</h3>
 						<p>
 							To the classifier, the plane is just <strong>a cut at one value of <i>z</i></strong>:
 							<!-- uses the plane height the reader chose (shared plane.t), live -->
@@ -429,6 +419,16 @@
 							The classifier's boundary is just the spots where <i>z</i> = {cutValue} exactly, so
 							it's a ring like these.
 						</p>
+						<!-- Replaces "The cut is flat; the circle comes from the feature." (user found it
+						     confusing). Draft wording by Claude Code. -->
+						<p>
+							So the classifier is still linear: in the features it's given (<i>x</i><sub>1</sub>,
+							<i>x</i><sub>2</sub> and <i>z</i>), its boundary is perfectly flat. The circle only
+							appears when we look back at the original <i>x</i><sub>1</sub>, <i>x</i><sub>2</sub>
+							plot. Since <i>z</i> measures how far a spot is from the center, "<i>z</i> &lt;
+							{cutValue}" really means "close to the center", and all the spots close enough to the
+							center fill in a circle.
+						</p>
 						<label class="slider">
 							<span class="slider-label">Plane height</span>
 							<input
@@ -455,9 +455,13 @@
 							selected below. Can it separate them?
 						</p>
 						<p>
-							<strong>Try it yourself:</strong> pick a feature to lift the points with, then slide the
-							plane. Each side of the plane is predicted whichever class fits it better. Can you
-							find a feature that gets every point right?
+							<!-- No plane is visible before solving (3D view is hidden), so this talks about the
+							     cut value and the gold boundary instead (wording by Claude Code). -->
+							<strong>Try it yourself:</strong> pick a feature, then slide the cut value. The gold
+							boundary marks every spot where <i>z</i> equals the cut. Points on one side are predicted
+							<strong style:color={COLORS.blue}>blue</strong> and points on the other side
+							<strong style:color={COLORS.red}>red</strong>, whichever way gets more points right.
+							Can you find a feature that gets every point right?
 						</p>
 						<p class="features-label">New feature <i>z</i> =</p>
 						<div class="features" role="group" aria-label="Constructed feature z">
@@ -472,7 +476,7 @@
 							{/each}
 						</div>
 						<label class="slider">
-							<span class="slider-label">Plane height</span>
+							<span class="slider-label">Cut at <i>z</i> =</span>
 							<input
 								type="range"
 								min={challengeRange.min}
@@ -501,8 +505,15 @@
 								to their new height <i>z</i>. With <i>z</i> = <i>x</i><sub>1</sub> · <i>x</i><sub
 									>2</sub
 								>, the <strong style:color={COLORS.blue}>blue</strong> points rise above the plane and
-								the <strong style:color={COLORS.red}>red</strong> points drop below it. Try the other
-								features to see why they can't do the same.
+								the <strong style:color={COLORS.red}>red</strong> points drop below it, so one flat cut
+								separates them.
+								<!-- Ties back to the main idea (wording by Claude Code). "Hugs the axes" rather than
+								     "hyperbola": at a cut of exactly 0 the boundary x1·x2 = 0 is the axes themselves. -->
+								Back on the 2D plot, that same flat cut is the gold boundary where
+								<i>x</i><sub>1</sub> · <i>x</i><sub>2</sub> equals the cut you found, which hugs the two
+								axes instead of forming a circle. A different feature gives a different shape, but the
+								classifier is still just one flat cut. Try the other features to see why they can't do
+								the same.
 							</p>
 						{/if}
 					</div>
@@ -778,40 +789,6 @@
 		margin-top: 1rem;
 	}
 
-	/* Optional-detour link with a down arrow (same chevron as the title page). */
-	.jump-link {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		margin-top: 1.25rem;
-		padding: 0;
-		font-family: var(--font-body);
-		font-size: var(--16px, 16px);
-		font-style: italic;
-		text-align: left;
-		color: var(--color-fg-light);
-		background: none;
-		border: none;
-		cursor: pointer;
-	}
-
-	.jump-link:hover,
-	.jump-link:focus-visible {
-		color: var(--color-fg);
-		text-decoration: underline;
-	}
-
-	.jump-link svg {
-		flex: none;
-		width: 1.1rem;
-		height: 1.1rem;
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 2;
-		stroke-linecap: round;
-		stroke-linejoin: round;
-	}
-
 	/* "faint rings": hover/focus/tap to flash the rings in the 2D view */
 	.ring-cue {
 		font-weight: 700;
@@ -834,7 +811,7 @@
 		color: var(--color-fg-light);
 	}
 
-	/* Heading inside a step card (the optional "Confused…?" explainer). */
+	/* Heading inside a step card (the "How can a flat cut make a circle?" explainer). */
 	.card-title {
 		margin: 0 0 0.75rem;
 		font-size: var(--20px, 20px);

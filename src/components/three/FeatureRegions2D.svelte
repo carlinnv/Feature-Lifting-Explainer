@@ -14,7 +14,21 @@
 
 	// opacity: both layers. regionOpacity: just the blue/red side shading (the boundary line
 	// stays) — 4.5 keeps the sides hidden until the challenge is solved (user decision).
-	let { featureIndex = 0, t = 0, aboveLabel = "blue", opacity = 1, regionOpacity = 1 } = $props();
+	// contours (0 → 1): faint level-set rings where the feature equals 1, 2, …, RING_MAX, drawn
+	// under the points (used in 4.4's 2D view). Off by default.
+	// showLine: draw the gold boundary f = t (4.4 turns it off; it has its own dashed ring).
+	let {
+		featureIndex = 0,
+		t = 0,
+		aboveLabel = "blue",
+		opacity = 1,
+		regionOpacity = 1,
+		contours = 0,
+		showLine = true
+	} = $props();
+
+	const RING_MAX = 6;
+	const RING_COLOR = "#7a7a7a";
 
 	const TINT = 0.14;
 	const LINE_COLOR = "#b88a00"; // same gold as the 3D ring / plane
@@ -42,7 +56,10 @@
 				uTint: { value: TINT },
 				uOpacity: { value: 1 },
 				uRegion: { value: 1 },
-				uLinePx: { value: LINE_PX }
+				uLinePx: { value: LINE_PX },
+				uContours: { value: 0 },
+				uRingMax: { value: RING_MAX },
+				uRingColor: { value: new Color(RING_COLOR) }
 			},
 			vertexShader: /* glsl */ `
 				varying vec2 vPos;
@@ -62,6 +79,9 @@
 				uniform float uOpacity;
 				uniform float uRegion;
 				uniform float uLinePx;
+				uniform float uContours;
+				uniform float uRingMax;
+				uniform vec3 uRingColor;
 				varying vec2 vPos;
 				void main() {
 					float x = vPos.x;
@@ -71,7 +91,15 @@
 					float d = f - uT;
 					if (uMode == 0) {
 						vec3 region = d > 0.0 ? uAbove : uBelow;
-						gl_FragColor = vec4(region, uTint * uRegion * uOpacity);
+						float a = uTint * uRegion;
+						// level-set rings at f = 1, 2, …, uRingMax (~1px wide on screen)
+						float k = floor(f + 0.5);
+						float cpx = abs(f - k) / max(fwidth(f), 1e-6);
+						float ring = (k >= 1.0 && k <= uRingMax)
+							? (1.0 - smoothstep(0.5, 1.5, cpx)) * uContours
+							: 0.0;
+						vec3 col = mix(region, uRingColor, ring);
+						gl_FragColor = vec4(col, max(a, ring * 0.6) * uOpacity);
 					} else {
 						// distance to the boundary in pixels (first-order), for a constant-width line
 						float px = abs(d) / max(fwidth(d), 1e-6);
@@ -100,10 +128,13 @@
 			u.uBelow.value.set(COLORS[aboveLabel === "blue" ? "red" : "blue"]);
 			u.uOpacity.value = opacity;
 			u.uRegion.value = regionOpacity;
+			u.uContours.value = contours;
 		}
 		invalidate();
 	});
 </script>
 
 <T.Mesh {geometry} material={shadingMaterial} position.z={SHADING_Z} />
-<T.Mesh {geometry} material={lineMaterial} position.z={LINE_Z} />
+{#if showLine}
+	<T.Mesh {geometry} material={lineMaterial} position.z={LINE_Z} />
+{/if}

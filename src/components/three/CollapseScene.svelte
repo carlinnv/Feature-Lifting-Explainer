@@ -7,7 +7,13 @@
 	//      and the camera tilts to look straight down
 	//   3. predicted-class shading fades in around the now-flat dashed circle
 	// After that it stays a 2D view that follows the plane height slider.
+	//
+	// `contours` (0 → 1, from step 6): faint rings where z = 1, 2, …, 6 with labels, to show a
+	// cut at one z value must follow one ring, and every ring is a circle. Only shown once the
+	// collapse has finished.
 	import { T, useThrelte } from "@threlte/core";
+	import { HTML } from "@threlte/extras";
+	import { Tween } from "svelte/motion";
 	import { untrack } from "svelte";
 	import { gsap } from "gsap";
 	import { EXTENT } from "$data/circles.js";
@@ -19,8 +25,25 @@
 	import Bowl from "./Bowl.svelte";
 	import SeparatingPlane from "./SeparatingPlane.svelte";
 	import Regions2D from "./Regions2D.svelte";
+	import FeatureRegions2D from "./FeatureRegions2D.svelte";
+
+	let { contours = 0 } = $props();
 
 	const { size, invalidate } = useThrelte();
+
+	// Rings fade in/out; never before the collapse is done (anim.region reaches 1 at the end).
+	const ringFade = new Tween(0, { duration: 700 });
+	$effect(() => {
+		ringFade.target = contours;
+	});
+	const rings = $derived(ringFade.current * anim.region);
+
+	// Ring z = k has radius √k; labels sit upper right, alternating two angles because the
+	// outer rings are close together.
+	const RING_LABELS = [1, 2, 3, 4, 5, 6].map((k) => {
+		const a = ((k % 2 ? 35 : 60) * Math.PI) / 180;
+		return { k, pos: [Math.sqrt(k) * Math.cos(a), Math.sqrt(k) * Math.sin(a), 0.2] };
+	});
 
 	const anim = $state({ lift: 1, bowl: 1, plane: 1, glow: 0, region: 0 });
 
@@ -65,6 +88,15 @@
 <T.OrthographicCamera makeDefault bind:ref={camera} up={[0, 0, 1]} {zoom} />
 
 <Regions2D cx={circle.cx} cy={circle.cy} r={circle.r} opacity={anim.region} />
+<!-- rings only: no side shading (Regions2D does that) and no boundary (the dashed ring does) -->
+<FeatureRegions2D featureIndex={0} regionOpacity={0} showLine={false} contours={rings} />
+{#if rings > 0.01}
+	{#each RING_LABELS as r (r.k)}
+		<HTML position={r.pos} center pointerEvents="none">
+			<span class="ring-label" style:opacity={rings}>{r.k}</span>
+		</HTML>
+	{/each}
+{/if}
 <Axes lift={anim.lift} />
 <Points lift={anim.lift} />
 <Bowl opacity={anim.bowl} />
@@ -76,3 +108,15 @@
 	ringLift={anim.lift}
 	glow={anim.glow}
 />
+
+<style>
+	.ring-label {
+		padding: 0 0.2rem;
+		font-family: var(--font-sans);
+		font-size: var(--12px, 12px);
+		color: #555;
+		background: rgba(255, 255, 255, 0.85);
+		border-radius: 0.2rem;
+		user-select: none;
+	}
+</style>

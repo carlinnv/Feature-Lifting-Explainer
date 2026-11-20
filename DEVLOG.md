@@ -497,3 +497,324 @@
 **Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds. Headless Chrome at desktop 1400×900 and phone 390×844, no console errors at either size: the title screen is exactly one viewport tall (900 / 844px) and the first section starts right below it. Clicking the arrow scrolled smoothly (sampled scroll positions 641 → 880 → 900 on desktop, 617 → 830 → 844 on phone) and landed with the first section at the top of the screen and step 0 active. Screenshots checked at both sizes.
 
 **Next Steps:** More UI/clarity improvements as directed by the user. Deferred: confusion area #2, plane tilt.
+
+## 2026-11-20: Scroll arrow moved under the description
+
+**Task:** "move the arrow directly under the description"
+
+**Changes (completed, by Claude Code):** The scroll arrow now sits directly under the description, 2.5rem below it, as part of the centered title block. It was previously pinned to the bottom of the title screen. The bob animation was adjusted to match (vertical only). Behavior is unchanged.
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** None.
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds. Headless Chrome at desktop 1400×900 and phone 390×844, no console errors: the title screen is still one viewport tall; clicking the arrow glides to the first section (lands at scroll 900 / 844, step 0 active). Screenshots show the arrow centered just below the description at both sizes.
+
+**Next Steps:** More UI/clarity improvements as directed by the user.
+
+## 2026-11-20: Intro text (user-written) and "lift the data" highlight
+
+**Task:** "i change the description text. look for confusing wording. Can you also highlight the words 'lift the data'"
+
+**Changes:**
+- The user rewrote the title-screen description themselves (two paragraphs: what a linear classifier does and where it fails; keeping the linear classifier and building new features to "lift the data" into a new view).
+- Completed by Claude Code: highlighted "lift the data" with a soft gold marker underline and bold dark text, in the same gold as the plane/boundary visuals. No wording was changed.
+- Claude Code reviewed the wording and suggested possible edits (listed in the reply to the user); none applied, pending the user's decision.
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** None.
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds. Headless Chrome at desktop 1400×900 and phone 390×844, no console errors: the highlight renders on "lift the data"; the longer description and the arrow still fit within the one-screen title page at both sizes; the arrow still glides to the first section.
+
+**Next Steps:** User decides on the wording suggestions.
+
+## 2026-11-20: Intro wording edits (suggestions 1, 3, 4)
+
+**Task:** "apply suggestions 1, 3, and 4"
+
+**Changes (completed, by Claude Code, wording suggested by Claude Code and chosen by the user):**
+- "manipulate the data we give it" → "give it more information about each point" (avoids implying the data is altered).
+- "into a new view" → "into a higher dimension" (the lift adds a dimension; it isn't just a new camera angle).
+- "where a straight cut works again" → "where a flat cut can separate them" (no straight cut worked before, and in 3D the cut is a flat plane).
+- Not applied, by user choice: #2 (defining "features" in the intro) and #5 (mentioning planes alongside lines).
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** Minor: "separate them" now refers back to "the two groups" from the first paragraph. The nearest nouns in the same sentence are "the data" and "a higher dimension", so the reference is slightly indirect.
+
+**Resolution:** Left for the user's review.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds. Headless Chrome at phone 390×844, no console errors: the title screen is still one viewport tall, and the arrow glides to the first section.
+
+**Next Steps:** More UI/clarity improvements as directed by the user.
+
+## 2026-11-20: Intro wording: "separate the two groups"
+
+**Task:** "change it to 'separate the two groups'"
+
+**Changes (completed, by Claude Code):** In the title-screen description, "where a flat cut can separate them" → "where a flat cut can separate the two groups", resolving the indirect "them" noted in the previous entry.
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** None.
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds. Text-only change; no browser test run.
+
+**Next Steps:** More UI/clarity improvements as directed by the user.
+
+## 2026-11-20: Section 4.2, lift button and "z is just a number" framing
+
+**Task:** "move onto the section where the z's first get lifted. can you add a button to lift the z's into a height? i want to make it clear that we are simply using height as a means to visualize the new feature rather than an actual feature of the data"
+
+**Changes (completed, by Claude Code):**
+- Step 2 no longer lifts automatically. It stays on the flat 2D plot with a "Lift each point to height z" button above the graph (same style as 4.4's "Collapse into 2D"). Clicking it runs the existing lift + camera-tilt animation.
+- To show that z is a computed number, not part of the data (Claude Code's design): two labelled example points, A (blue, point #36) and B (red, point #50), with circle badges on the plot and worked examples in the card: "A: x₁ = 0.2, x₂ = 0.6 → z = (0.2)² + (0.6)² = 0.40" and "B: x₁ = −2.2, x₂ = 0.5 → z = (−2.2)² + (0.5)² = 5.09". z is computed from the displayed (rounded) coordinates, so the arithmetic checks out exactly. The badges ride up with their points during the lift and also show in step 3.
+- Step 2 text (draft by Claude Code): before the lift, "So z is just one more number attached to each point. To see all 100 of them at once, we'll draw z as height… Click Lift each point to height z above the graph." After the lift: "Each point now sits at a height equal to its z: A barely leaves the floor, while B rises high. Nothing about the points themselves changed. Height is just how we're drawing the new number." The "Wait, are we allowed to do that?" note is kept.
+- Scrolling back above 4.2 resets it (button offered again). Scrolling on to step 3 without clicking lifts automatically, since the bowl step needs the 3D view. Same 300ms settle rule as 4.4/4.5.
+
+**Files Modified:** `src/data/circles.js` (`EXAMPLE_POINTS`), `src/stores/explainer.svelte.js` (`liftStep`), `src/components/three/PointLabels.svelte` (new), `src/components/three/Scene.svelte`, `src/components/Index.svelte`
+
+**Issues Encountered:** At phone width the button label wrapped onto two lines and its top was clipped off the view.
+
+**Resolution:** Kept the label on one line and made the button slightly smaller on narrow screens.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds. Headless Chrome at desktop 1400×900 and phone 390×844, no console errors at either size: the example lines render as expected (0.40 and 5.09); at step 2 the button and 2 badges show, and the view stays flat (screenshots identical after waiting 1.5s); clicking lifts the points (badge B rises on screen, A stays near the floor), the button disappears, and the text switches; step 1 → step 2 resets it; step 1 → jump to step 3 lifts automatically. Screenshots checked at both sizes.
+
+**Next Steps:** User review of the new step 2 text and examples.
+
+## 2026-11-20: Section 4.2, hover-for-z, dropdown note, button in the card
+
+**Task:** "remove the z examples. instead, make it so that when the user hovers over the points (only for this view, not for future views), their z values pop up. make the 'Wait, are we allowed to do that?' section a dropdown, and then move the button below that section."
+
+**Changes (completed, by Claude Code):**
+- Removed the A/B worked examples, the A/B badges on the plot (`PointLabels.svelte` deleted), and `EXAMPLE_POINTS`.
+- Hover for z (new `HoverZ.svelte`), step 2 only: hovering near a point shows a ring around it and a "z = 0.43"-style tooltip. On touch screens, tapping a point does the same. It works both before and after the lift, and the tooltip follows the point up. Design choice (Claude Code): picking finds the nearest point on screen within 14px rather than requiring the pointer to be exactly on the small sphere, so it's easy to use.
+- Step 2 text now says "Hover over any point on the graph to see its z."
+- "Wait, are we allowed to do that?" is now a collapsible dropdown (`<details>`), closed by default, with a turning chevron. Same wording.
+- The "Lift each point to height z" button moved from above the graph into the card, below the dropdown (same style as 4.5's Submit button).
+- After-lift text no longer mentions A/B: "points near the center barely leave the floor, while points farther out rise high. Nothing about the points themselves changed. Height is just how we're drawing the new number."
+
+**Files Modified:** `src/components/three/HoverZ.svelte` (new), `src/components/three/PointLabels.svelte` (deleted), `src/components/three/Scene.svelte`, `src/data/circles.js`, `src/components/Index.svelte`
+
+**Issues Encountered:** None.
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds. Headless Chrome (desktop 1400×900), no console errors: at step 2 the button is in the card (none over the graph), the examples are gone, the dropdown starts closed, and the button comes after the dropdown; hovering near point #36 shows "z = 0.43" (matches x₁² + x₂²); hovering an empty corner shows nothing; clicking the summary opens the dropdown; clicking the button lifts the points and the button disappears; after the lift, hovering a red point shows "z = 4.00" at its raised position; at step 3 there is no hover tooltip. Screenshots checked. Phone size and tapping were not tested.
+
+**Next Steps:** User review.
+
+## 2026-11-20: Section 4.2, "Wait, are we allowed to do that?" removed for now
+
+**Task:** "i edited the text. look for confusing wording. remove the 'Wait, are we allowed to do that?' module for now. i feel like the text 'The classifier doesn't care where its inputs come from, so x12 + x22 is as valid an input as x1 itself.' is confusing"
+
+**Changes:**
+- The user edited the step 2 text before the lift button ("To visualize our new feature more clearly, we'll draw each point's z as its height: the greater a point's z, the higher we lift it.").
+- Completed by Claude Code: removed the "Wait, are we allowed to do that?" dropdown. Its markup and `.dropdown` styles are kept as comments in `Index.svelte` so it can be restored with new wording.
+- Claude Code reviewed the step 2 wording and suggested edits (in the reply to the user); none applied, pending the user's decision.
+
+**Open item:** With the dropdown removed, SPEC "Potential Areas of Confusion" #1 (why we're allowed to construct new features) is no longer addressed anywhere on the page. Earlier the user had chosen to handle it with this note. It is deferred again, to be revisited along with the wording.
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** Leaving the unused `.dropdown` styles in place produced 6 Svelte "unused CSS selector" build warnings.
+
+**Resolution:** Commented out the styles along with the markup; the build is clean again.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Markup-only removal; no browser test run.
+
+**Next Steps:** User decides on the wording suggestions; revisit confusion area #1.
+
+## 2026-11-20: Section 4.2, prompt to notice "distance from the center"
+
+**Task:** "i want the user themselves to reach the idea that we are using distance from origin as a feature because that is what differentiates our two classes. Can you add a sentence to illustrate this idea after 'But what if we gave the classifier a third feature?'"
+
+**Changes (completed, by Claude Code; wording drafted by Claude Code):** After "But what if we gave the classifier a third feature?", added a question that prompts the reader to work out the distinguishing property before the feature is introduced: "Look at the plot again: what's the one thing that sets every blue point apart from every red one? (Hint: it isn't which direction they are from the center.)" "blue" and "red" are colored to match the points. The next paragraph (introducing z = x₁² + x₂², "the squared distance from the origin") serves as the answer.
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** None.
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Text-only change; no browser test run.
+
+**Next Steps:** User review of the wording. The wording suggestions from the previous review (height "equal to" z, "nothing changed", "more clearly", "squared distance") are still open.
+
+## 2026-11-20: Section 4.2, "Reveal answer" button
+
+**Task:** "hide this text behind a 'Reveal answer' button" (the user-written answer paragraph: "That's right, it's each point's distance from the center! The blue points are a lot closer to the origin than the red points.")
+
+**Context:** Since the previous entry the user had edited step 2 themselves: removed the "(Hint: …)" from the question and added the answer paragraph above.
+
+**Changes (completed, by Claude Code):** The answer paragraph is now hidden behind a "Reveal answer" button. Clicking it replaces the button with the paragraph (fades in). Styled as a light outlined secondary button so it doesn't compete with the main "Lift each point to height z" button. It resets (hidden again) when the reader scrolls back above 4.2, like the other 4.2 state. The user's wording is unchanged.
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** None. Observation (not changed): the next paragraph begins "We can build one from the two we already have"; with the answer paragraph now in between, "one" refers back to "a third feature" two paragraphs earlier.
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Headless Chrome (desktop 1400×900), no console errors: at step 2 the button shows and the answer is hidden; clicking shows the answer and removes the button; step 1 → step 2 hides it again. Screenshots checked.
+
+**Next Steps:** User review.
+
+## 2026-11-20: Section 4.2, after-lift text in its own card
+
+**Task:** "give this text its own box: 'Each point now sits at a height equal to its z: … Height is just how we're drawing the new number.' so that after clicking the lift button, the previous text disappears and gets replaced with just that paragraph"
+
+**Context:** The user had edited step 2 again since the last entry (e.g., "We can turn that into a feature using the two we already have:").
+
+**Changes (completed, by Claude Code):** The step 2 card now shows one of two contents. Before the lift: the full introduction (question, Reveal answer, feature definition, hover hint, height explanation, lift button). After the lift: only the "Each point now sits at a height equal to its z…" paragraph, fading in. Scrolling back above 4.2 resets to the introduction, as before. Text unchanged.
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** None.
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Headless Chrome (desktop 1400×900), no console errors: before the lift the card has 3 paragraphs and 2 buttons; after clicking the lift button it has only the after-lift paragraph and no buttons; step 1 → step 2 restores the introduction. Screenshot checked.
+
+**Next Steps:** User review.
+
+## 2026-11-20: New section, "Why does a flat cut give a circle?" (number line + contour rings)
+
+**Task:** "build 1 in a new section after the 'collapse back into 2D' section. we can try 2 as well." (Ideas suggested by Claude Code: 1 = a number line of z values with a single cut, linked to the 2D circle; 2 = contour rings on the 2D plot.) This targets SPEC confusion area #2 (linear in the features vs. curved in the original data), previously deferred.
+
+**Changes (completed, all code generated by Claude Code):**
+- Two new scroll steps between 4.4 and 4.5. The 4.5 challenge moves from step 7 to step 9; its step checks and reset rule were updated.
+- **Step 7, the number line:** the visual becomes a number line of z on top ("What the classifier sees: each point's z", 30% of the panel) and the 2D plot below (70%). Each point sits on the line by its z alone, stacked where dots would overlap, so blue piles at low z and red at high z. A gold marker is the classifier's whole rule (below = blue, above = red), with blue/red shading on either side. It can be dragged anywhere on the line, or moved with arrow keys / Home / End on its focusable handle (`role="slider"`). The marker sets the same `plane.t` as the 4.3/4.4 plane, so the 2D circle (blue inside / red outside, gold boundary) updates live and all sections stay consistent. The card has the shared accuracy readout.
+- **Step 8, contour rings:** faint gray rings where z = 1, 2, …, 6 fade in on the 2D plot, with small labels 1–6 matching the number line's ticks. The text explains that a cut at one z value has to follow one ring, and every ring is a circle because z measures distance from the center: "the classifier really did draw a straight cut. The curve comes from the feature we gave it."
+- Step 7–8 text is draft copy by Claude Code.
+- Implementation: new `NumberLine.svelte` (SVG) and `three/CircleCut2D.svelte`. The rings are drawn by the existing region shader (`FeatureRegions2D`, new `contours` option, off by default so 4.5 is unaffected), at a constant ~1px on-screen width, under the points.
+
+**Files Modified:** `src/components/NumberLine.svelte` (new), `src/components/three/CircleCut2D.svelte` (new), `src/components/three/FeatureRegions2D.svelte`, `src/components/Index.svelte`
+
+**Issues Encountered:**
+- On phones the narrower number line made the dot-piles taller, pushing the marker handle off the top.
+- On phones the outer ring labels (4–6) crowded together, since rings at √5 and √6 are close.
+- Remaining minor issues: on phones the "cut at z = …" text above the handle is hidden behind the panel title; the "2D: x₁, x₂" label sits on the border between the number line and the plot.
+
+**Resolution:** Dot radius now scales with the line's width (2.5–5px). Ring labels alternate between two angles (35°/60°). The remaining minor issues are left for user review.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Headless Chrome at desktop 1400×900 and phone 390×844, no console errors at either size: at step 7 the number line shows all 100 points with the cut at 0.30 (readout 64%); a simulated mouse drag along the line moved the cut to 2.90 (readout 100%, 2D circle updated); 4 ArrowRight presses on the focused handle → 3.10; step 8 shows 6 ring labels; step 9 shows the XOR challenge (2D view, Submit button) and the number line is gone; back at step 4, the 4.3 readout matches the shared cut (100%) and the main 3D view is visible again. Screenshots checked at both sizes.
+
+**Next Steps:** User review of the new section and its draft text.
+
+## 2026-11-20: Number-line section removed; contour rings + "a cut at one z value" moved into 4.4
+
+**Task:** "i don't like the number line, it looks like a lot. remove this section. i like the contour rings and framing it as 'a cut at one z value'."
+
+**Changes (completed, by Claude Code):**
+- Removed the "Why does a flat cut give a circle?" section (both steps, `NumberLine.svelte`, `CircleCut2D.svelte`, and its styles). The 4.5 challenge is back at step 7.
+- Moved the parts the user liked into 4.4's "move the plane" step (step 6), where the 2D circle is already shown. Placement is Claude Code's choice, since the user didn't specify where they should go:
+  - The contour rings (z = 1…6, labeled, alternating label angles) fade into the 4.4 2D view at step 6, only once the collapse animation has finished. They are drawn by the existing region shader in a rings-only mode (new `showLine` option, so it doesn't duplicate 4.4's dashed boundary).
+  - Two paragraphs after the readout (draft wording by Claude Code): "To the classifier, the plane is just a cut at one value of z: points with a smaller z are predicted blue, and points with a larger z are predicted red." and "The faint rings in the 2D view connect spots that share the same z (labeled 1 to 6). A cut at one z value has to follow one of these rings, and because z measures distance from the center, every ring is a circle. The cut itself is flat. The curve comes from the feature."
+- Confusion area #2 is now addressed in 4.4 with this framing (pending user review of the wording).
+
+**Files Modified:** `src/components/Index.svelte`, `src/components/three/CollapseScene.svelte`, `src/components/three/FeatureRegions2D.svelte`, `src/components/NumberLine.svelte` (deleted), `src/components/three/CircleCut2D.svelte` (deleted)
+
+**Issues Encountered:** On phones the 4.4 2D view is half the panel width, so the rings and their labels are tight.
+
+**Resolution:** Left as is, pending user review.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Headless Chrome at desktop 1400×900 and phone 390×844, no console errors at either size: 8 steps in total and no number line; no ring labels at step 5, including after the collapse finishes; 6 ring labels at step 6; height 2.9 → 100%; step 7 is the XOR challenge again (Submit and 2D view present). Screenshots checked at both sizes.
+
+**Next Steps:** User review of the rings and the "cut at one z value" wording.
+
+## 2026-11-20: Section 4.4, "It lands as a circle" hidden until collapse
+
+**Task:** "hide this text until the user collapses the graph" ("It lands as a circle. Points inside the circle are predicted blue, and points outside are predicted red.")
+
+**Context:** The user had edited the step 5 text themselves (e.g., "Click Collapse into 2D above the graph to see!").
+
+**Changes (completed, by Claude Code):** The "It lands as a circle…" paragraph is now hidden until the user clicks "Collapse into 2D". It then fades in after a 3.2s delay (Claude Code's choice), timed to when the circle lands in the collapse animation, so the sentence doesn't give away the result before the reader sees it. It hides again when the collapse resets (scrolling back above 4.4). Text unchanged.
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** None.
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Headless Chrome (desktop 1400×900), no console errors: at step 5 before clicking, the paragraph is absent; 1s after clicking it is present but still transparent (opacity 0); 4s after clicking it is fully visible; step 4 → step 5 hides it again.
+
+**Next Steps:** User review.
+
+## 2026-11-20: Section 4.4, landing text appears right away
+
+**Task:** "make it appear right away"
+
+**Changes (completed, by Claude Code):** Removed the 3.2s delay from the previous entry. The "It lands as a circle…" paragraph now fades in immediately (0.3s) when the user clicks "Collapse into 2D". It is still hidden before the click.
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** None.
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Headless Chrome (desktop 1400×900), no console errors: hidden before the click; present but only at opacity 0.11 at 0.5s after the click (expected fully visible with the 0.3s fade; likely slow headless rendering during the 3D collapse animation, not confirmed); fully visible at 4s; hidden again after step 4 → step 5.
+
+**Next Steps:** User review.
+
+## 2026-11-20: Optional "Confused how the circle still counts as a linear classifier?" step
+
+**Task:** "rather than combining the contour rings with the 'move the plane up and down' section, can you make it into an optional dropdown (or text with an arrow, like in the intro paragraph) that leads the users to a new section titled 'Confused how the circle still counts as a linear classifier?'"
+
+**Changes (completed, by Claude Code):**
+- Step 6 ("move the plane up and down") is back to just the slider and readout. The rings and the "cut at one z value" text were removed from it.
+- Added an italic link with a down-chevron (same chevron as the title-page arrow) at the bottom of step 6: "Confused how the circle still counts as a linear classifier?" Clicking it glides to the new step (smooth scroll; jumps instead with reduced motion). Readers who don't need it can scroll past.
+- New step 7, titled "Confused how the circle still counts as a linear classifier?": the "cut at one value of z" paragraph and the contour-rings paragraph (same wording as before), plus a plane-height slider with a prompt (draft by Claude Code): "Move the plane and watch the circle: at a height of 2 it sits exactly on ring 2, and at 4 it sits exactly on ring 4." The 4.4 split view (3D left, 2D right) continues through this step, and the contour rings fade into the 2D view only here.
+- The XOR challenge moved from step 7 to step 8 (its step checks and reset rule were updated).
+- While drafting, Claude Code initially wrote "watch the circle snap from ring to ring", then corrected it before building, because the circle moves smoothly and doesn't snap.
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** None.
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Headless Chrome at desktop 1400×900 and phone 390×844, no console errors at either size: 9 steps in total; after collapsing at step 5, step 6 shows the link and no rings text or ring labels; clicking the link scrolls to step 7 (now the active step), which shows the title, 6 ring labels, and the split view; at height 2.00 the screenshot shows the dashed circle sitting on ring 2; step 8 is the challenge (Submit present, split view off). Screenshots checked.
+
+**Next Steps:** User review.
+
+## 2026-11-20: "Confused…?" step uses the reader's chosen cut value
+
+**Task:** "use the 100% accuracy line the user chose. if they moved it to z=5, for example, say 'points with a z < 5 are predicted blue, points with a z > 5 are predicted red'"
+
+**Changes (completed, by Claude Code):** The "cut at one value of z" sentence in the "Confused…?" step now uses the reader's current plane height (shared `plane.t`), e.g. "points with z < 2.9 are predicted blue, and points with z > 2.9 are predicted red". It updates live if the reader moves the slider in that step. Trailing zeros are dropped (5.00 → "5", 2.90 → "2.9"). "blue" and "red" are now colored to match the points.
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** The sentence shows whatever height the reader last chose, whether or not it scores 100%. The section doesn't force a 100% cut.
+
+**Resolution:** Left as is (the user's example used z = 5, which is not a 100% cut). Pending user review.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Headless Chrome (desktop 1400×900), no console errors: after setting the step 6 slider to 2.9, the step 7 sentence reads "points with z < 2.9 … z > 2.9"; moving the step 7 slider to 5 → "z < 5 … z > 5"; to 3.35 → "z < 3.35 … z > 3.35".
+
+**Next Steps:** User review.
+
+## 2026-11-20: Snap to a 100% cut on entering the "Confused…?" step
+
+**Task:** "snap to a 100% cut before this section."
+
+**Changes (completed, by Claude Code):**
+- When the reader arrives at the "Confused…?" step (after the usual 300ms settle), if the shared plane height doesn't give 100%, the plane glides (0.7s) to the nearest height that does. The perfect range is found once by scanning the slider's own 0.05 steps; for this data it is 2.15–3.60. If the plane was already at 100%, nothing changes.
+- When the plane was moved, a short note appears under the "cut at one value of z" sentence (wording by Claude Code): "(We moved the plane from z = 1 to a height where every point is on the correct side.)" The sentence's z value follows the plane as it glides.
+- Design choices (Claude Code): snap to the *nearest* perfect height (keeps the reader's choice as close as possible) rather than the middle of the range; the slider in that step still moves freely afterward (its "height 2 → ring 2" prompt relies on that), so the snap only happens on arrival.
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** Snapping to the nearest perfect height lands on the edge of the perfect range (2.15 or 3.60), which leaves very little margin to the closest blue (z ≈ 2.12) or red (z ≈ 3.63) points.
+
+**Resolution:** Left as is, pending user review. Snapping to the middle of the range (~2.9) instead is a one-line change.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Headless Chrome (desktop 1400×900), no console errors: plane at 1.0 in step 6 (88%) → in the "Confused…?" step it reads "z < 2.15", slider 2.15, with the note "from z = 1"; plane at 5.0 (53%) → "z < 3.6", slider 3.60, note "from z = 5"; plane at 2.9 (100%) → stays 2.9, no note; moving the slider there to 2 afterward works ("z < 2").
+
+**Next Steps:** User review (nearest vs. middle snap).

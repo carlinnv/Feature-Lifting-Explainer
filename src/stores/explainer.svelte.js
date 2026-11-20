@@ -82,3 +82,8 @@ export const challengeScore = {
 		return scoreThreshold(xor, featureById(challenge.featureId).fn, challenge.t);
 	}
 };
+
+// Section 4.2: whether the user has clicked "Lift each point to height z" (user decision:
+// the lift is triggered by a button so it's clear height is only a way to draw z).
+// Reset when the user scrolls back above 4.2; set automatically if they scroll past it.
+export const liftStep = $state({ lifted: false });

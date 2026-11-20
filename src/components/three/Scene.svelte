@@ -13,7 +13,8 @@
 	import SplitLine from "./SplitLine.svelte";
 	import Bowl from "./Bowl.svelte";
 	import SeparatingPlane from "./SeparatingPlane.svelte";
-	import { plane, mainView } from "$stores/explainer.svelte.js";
+	import { plane, mainView, liftStep } from "$stores/explainer.svelte.js";
+	import HoverZ from "./HoverZ.svelte";
 	import { CAM_R, VIEW_2D, VIEW_3D, viewToPosition } from "$utils/camera.js";
 
 	let { step = 0 } = $props();
@@ -23,7 +24,11 @@
 	const { size, dom } = useThrelte();
 
 	// --- step → scene state ---------------------------------------------------
-	const is3D = $derived(step >= 2);
+	// 4.2: the lift waits for the "Lift each point to height z" button (or happens
+	// automatically once the reader scrolls on to step 3).
+	const is3D = $derived(step >= 3 || (step === 2 && liftStep.lifted));
+	// Hover a point to see its z — only in step 2, where z is introduced (user decision).
+	const showHoverZ = $derived(step === 2);
 	const showLine = $derived(step === 1);
 	const showBowl = $derived(step >= 3);
 	// Rotation is introduced with the bowl ("Try it yourself: drag the plot…"), not before.
@@ -140,6 +145,10 @@
 <Points lift={anim.lift} />
 <Bowl opacity={anim.bowl} />
 <SeparatingPlane t={plane.t} {tilt} planeOpacity={anim.plane} ringOpacity={anim.plane} />
+
+{#if showHoverZ}
+	<HoverZ lift={anim.lift} />
+{/if}
 
 {#if showLine}
 	<SplitLine />

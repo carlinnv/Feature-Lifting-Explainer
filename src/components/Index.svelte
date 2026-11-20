@@ -11,6 +11,7 @@
 		PLANE_MIN,
 		PLANE_MAX,
 		collapse,
+		liftStep,
 		challenge,
 		challengeScore,
 		selectFeature,
@@ -23,6 +24,8 @@
 	import { xor } from "$data/xor.js";
 	import { fade } from "svelte/transition";
 	import { circles } from "$data/circles.js";
+	import { scorePlane } from "$utils/lift.js";
+	import { gsap } from "gsap";
 
 	// Title arrow: glide down to the first section (jump instead if the reader prefers
 	// reduced motion).
@@ -32,21 +35,63 @@
 		explainerEl?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
 	}
 
+	// In-text links that glide to a later step (e.g. 4.4's optional "Confused…?" explainer).
+	function scrollToStep(i) {
+		const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		document
+			.querySelectorAll(".step")
+			[i]?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+	}
+
 	let scrollIndex = $state(undefined);
+
+	// 4.2: the "distance from the center" answer is hidden behind a Reveal answer button.
+	let answerShown = $state(false);
 	// Before any step is in view, show the first step's visual.
 	const step = $derived(scrollIndex ?? 0);
+
+	// The reader's chosen plane height as plain text (2.90 → "2.9", 5.00 → "5"), for the
+	// "Confused…?" step's "points with z < … are predicted blue" sentence.
+	const cutValue = $derived(String(Number(plane.t.toFixed(2))));
+
+	// Entering the "Confused…?" step snaps the plane to a 100% cut (user decision), so the
+	// sentence above describes a perfect split. The perfect range is found once by scanning the
+	// slider's own steps; the plane glides to the nearest perfect height. If it was moved, a
+	// short note says so.
+	const PLANE_STEP = 0.05;
+	const perfectRange = (() => {
+		let lo = null;
+		let hi = null;
+		for (let t = PLANE_MIN; t <= PLANE_MAX + 1e-9; t += PLANE_STEP) {
+			const v = Math.round(t / PLANE_STEP) * PLANE_STEP;
+			if (scorePlane(v, 0, circles).correct === circles.length) {
+				lo ??= v;
+				hi = v;
+			}
+		}
+		return { lo, hi };
+	})();
+	let snappedFrom = $state(null);
+	function snapToPerfectCut() {
+		if (perfectRange.lo === null || planeScore.current.correct === circles.length) return;
+		const from = plane.t;
+		const to = Math.min(perfectRange.hi, Math.max(perfectRange.lo, from));
+		snappedFrom = from;
+		gsap.to(plane, { t: to, duration: 0.7, ease: "power2.inOut" });
+	}
 
 	const lineCorrect = $derived(Math.round(lineScore.current.accuracy * circles.length));
 	const planeCorrect = $derived(planeScore.current.correct);
 
 	// Section 4.4: at step 5 the user clicks "Collapse into 2D", which splits the visual into the
 	// 3D view (left) and a clone that collapses into 2D (right).
-	const split = $derived(step >= 5 && step <= 6 && collapse.on);
+	const split = $derived(step >= 5 && step <= 7 && collapse.on);
 	const showCollapseButton = $derived(step === 5 && !collapse.on);
 
 	// Section 4.5: the XOR challenge replaces the visual with its own 3D (left) and 2D (right)
 	// views. The main scene stays mounted underneath (hidden) so scrolling back is seamless.
-	const inChallenge = $derived(step >= 7);
+	const inChallenge = $derived(step >= 8);
+
 	const challengeCorrect = $derived(challengeScore.current.correct);
 	const challengeFeature = $derived(featureById(challenge.featureId));
 	const challengeRange = $derived(featureRange(xor, challengeFeature.fn));
@@ -82,7 +127,16 @@
 			// Step 6's controls need the 2D view; if the user scrolled past without clicking, collapse now.
 			else if (s >= 6) collapse.on = true;
 			// Scrolling back above 4.5 hides its 3D view again, so it's re-earned next time.
-			if (s < 7) challenge.revealed = false;
+			if (s < 8) challenge.revealed = false;
+			// 4.2's lift: reset above it (button offered again); if the reader scrolled on to
+			// step 3 without clicking, lift anyway since the bowl step needs the 3D view.
+			if (s === 7) snapToPerfectCut();
+			else snappedFrom = null;
+			if (s < 2) {
+				liftStep.lifted = false;
+				answerShown = false;
+			}
+			else if (s >= 3) liftStep.lifted = true;
 		}, SETTLE_MS);
 		return () => clearTimeout(timer);
 	});
@@ -93,19 +147,20 @@
 	<div class="intro-inner">
 		<h1>Feature Lifting</h1>
 		<p class="dek">
-			How adding a new feature lets a straight-line classifier solve a curved problem.
+			A linear classifier is one of the simplest tools in machine learning. It sorts data into two groups by drawing a straight line between them, which works well until the two groups are arranged in a way no straight line can split.
+			<br> <br> Rather than switching to a more complicated classifier, we can keep our linear one and give it more information about each point. If we build new features out of the ones we already have, we can <mark class="key-term">lift the data</mark> into a higher dimension where a flat cut can separate the two groups.
 		</p>
+		<button class="scroll-arrow" aria-label="Start the explainer" onclick={scrollToStart}>
+			<svg viewBox="0 0 24 24" aria-hidden="true">
+				<path d="M6 9l6 6 6-6" />
+			</svg>
+		</button>
 	</div>
-	<button class="scroll-arrow" aria-label="Start the explainer" onclick={scrollToStart}>
-		<svg viewBox="0 0 24 24" aria-hidden="true">
-			<path d="M6 9l6 6 6-6" />
-		</svg>
-	</button>
 </header>
 
 <svelte:boundary onerror={(e) => console.error(e)}>
 	<section class="explainer" bind:this={explainerEl}>
-		<div class="visual" class:split class:challenge={inChallenge}>
+		<div class="visual" class:split class:covered={inChallenge}>
 			{#if inChallenge}
 				<!-- 3D view only after the challenge is solved; the 2D view then slides to the right half -->
 				{#if challenge.revealed}
@@ -143,7 +198,7 @@
 			{#if split}
 				<div class="view view-collapse" transition:fade={{ duration: 400 }}>
 					<Canvas toneMapping={NoToneMapping}>
-						<CollapseScene />
+						<CollapseScene contours={step === 7 ? 1 : 0} />
 					</Canvas>
 					<span class="view-label">2D: <i>x</i><sub>1</sub>, <i>x</i><sub>2</sub></span>
 				</div>
@@ -186,20 +241,57 @@
 				<!-- 4.2, step 2: lift into 3D -->
 				<div class="step" class:active={step === 2}>
 					<div class="card">
-						<p>A straight line can't do it. But what if we gave the classifier a third feature?</p>
+						<!-- Before the lift: the whole introduction + button. After the lift, the card
+						     shows only the "Each point now sits…" paragraph (user decision). -->
+						{#if !liftStep.lifted}
 						<p>
-							We can build one from the two we already have:
+							A straight line can't do it. But what if we gave the classifier a third feature?
+							Look at the plot again: what's the one thing that sets every
+							<strong style:color={COLORS.blue}>blue</strong> point apart from every
+							<strong style:color={COLORS.red}>red</strong> one?
+						</p>
+						<!-- The answer stays hidden until the reader asks for it (user decision). -->
+						{#if answerShown}
+							<p transition:fade={{ duration: 300 }}>
+								That's right, it's each point's distance from the center! The blue points are a lot closer to the origin than the red points.
+							</p>
+						{:else}
+							<button class="reveal-btn" onclick={() => (answerShown = true)}>
+								Reveal answer
+							</button>
+						{/if}
+						<p>
+							We can turn that into a feature using the two we already have:
 							<i>z</i> = <i>x</i><sub>1</sub><sup>2</sup> + <i>x</i><sub>2</sub><sup>2</sup>, the
-							squared distance from the origin. Points near the center get a small <i>z</i>; points
-							far away get a large one.
+							squared distance from the origin. Every point gets its own <i>z</i>, just by plugging
+							in its <i>x</i><sub>1</sub> and <i>x</i><sub>2</sub>.
+							<strong>Hover over any point</strong> on the graph to see its <i>z</i>.
 						</p>
-						<p class="note">
-							<strong>Wait, are we allowed to do that?</strong> Yes. A feature is just a number we
-							compute from a data point. The classifier doesn't care where its inputs come from, so
-							<i>x</i><sub>1</sub><sup>2</sup> + <i>x</i><sub>2</sub><sup>2</sup> is as valid an input
-							as <i>x</i><sub>1</sub> itself.
-						</p>
-						<p>Watch as each point is lifted to its height <i>z</i>.</p>
+						<!-- Removed for now by user decision (wording felt confusing; to be revisited).
+						     Restore by uncommenting this and the .dropdown styles below.
+						<details class="note dropdown">
+							<summary>Wait, are we allowed to do that?</summary>
+							<p>
+								Yes. A feature is just a number we compute from a data point. The classifier doesn't
+								care where its inputs come from, so
+								<i>x</i><sub>1</sub><sup>2</sup> + <i>x</i><sub>2</sub><sup>2</sup> is as valid an
+								input as <i>x</i><sub>1</sub> itself.
+							</p>
+						</details>
+						-->
+							<p>
+								To visualize our new feature more clearly, we'll draw each point's <i>z</i> as its <strong>height</strong>: the greater a point's <i>z</i>,
+								the higher we lift it.
+							</p>
+							<button class="card-btn" onclick={() => (liftStep.lifted = true)}>
+								Lift each point to height <i>z</i>
+							</button>
+						{:else}
+							<p class="after-lift" in:fade={{ duration: 400 }}>
+								Each point now sits at a height based on its <i>z</i>. Points near the center barely
+								leave the floor, while points farther out rise high.
+							</p>
+						{/if}
 					</div>
 				</div>
 
@@ -250,16 +342,16 @@
 					<div class="card">
 						<p>So what does the plane do to our original 2D data?</p>
 						<p>
-							Click <strong>Collapse into 2D</strong> above the graph. A copy of the 3D view will
-							appear on the right and flatten back into 2D. The dashed ring where the plane cuts the
-							bowl lights up, and as the points drop back to the floor, the ring comes down with
-							them.
+							Click <strong>Collapse into 2D</strong> above the graph to see!
 						</p>
-						<p>
-							It lands as a <strong>circle</strong>. Points inside the circle are predicted
-							<strong style:color={COLORS.blue}>blue</strong>, and points outside are predicted
-							<strong style:color={COLORS.red}>red</strong>.
-						</p>
+						<!-- Hidden until the user collapses the graph, then appears right away (user decision). -->
+						{#if collapse.on}
+							<p in:fade={{ duration: 300 }}>
+								It lands as a <strong>circle</strong>. Points inside the circle are predicted
+								<strong style:color={COLORS.blue}>blue</strong>, and points outside are predicted
+								<strong style:color={COLORS.red}>red</strong>.
+							</p>
+						{/if}
 					</div>
 				</div>
 
@@ -284,11 +376,59 @@
 							<span class="slider-value">{plane.t.toFixed(2)}</span>
 						</label>
 						<Readout correct={planeCorrect} total={circles.length} />
+						<!-- Optional detour (user decision): glides down to the "Confused…" step below. -->
+						<button class="jump-link" onclick={() => scrollToStep(7)}>
+							<span>Confused how the circle still counts as a linear classifier?</span>
+							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+						</button>
 					</div>
 				</div>
 
-				<!-- 4.5, step 7: XOR challenge — choose the constructed feature, then slide the plane -->
+				<!-- 4.4, step 7 (optional explainer): why the circle still comes from a linear classifier.
+				     The plane is a cut at one z value; the contour rings (z = 1…6) in the 2D view show
+				     every such cut is a circle. Draft wording by Claude Code. -->
 				<div class="step" class:active={step === 7}>
+					<div class="card">
+						<h3 class="card-title">Confused how the circle still counts as a linear classifier?</h3>
+						<p>
+							To the classifier, the plane is just <strong>a cut at one value of <i>z</i></strong>:
+							<!-- uses the plane height the reader chose (shared plane.t), live -->
+							points with <i>z</i> &lt; {cutValue} are predicted
+							<strong style:color={COLORS.blue}>blue</strong>, and points with <i>z</i> &gt;
+							{cutValue} are predicted <strong style:color={COLORS.red}>red</strong>.
+						</p>
+						{#if snappedFrom !== null}
+							<p class="snap-note" transition:fade={{ duration: 300 }}>
+								(We moved the plane to a
+								height where every point is correctly classified.)
+							</p>
+						{/if}
+						<p>
+							The faint rings in the 2D view connect spots that share the same <i>z</i> (labeled 1
+							to 6). A cut at one <i>z</i> value has to follow one of these rings, and because
+							<i>z</i> measures distance from the center, every ring is a circle. The cut itself is
+							flat. The curve comes from the feature.
+						</p>
+						<p>
+							Move the plane and watch the circle: at a height of 2 it sits exactly on ring 2, and at
+							4 it sits exactly on ring 4.
+						</p>
+						<label class="slider">
+							<span class="slider-label">Plane height</span>
+							<input
+								type="range"
+								min={PLANE_MIN}
+								max={PLANE_MAX}
+								step="0.05"
+								bind:value={plane.t}
+							/>
+							<span class="slider-value">{plane.t.toFixed(2)}</span>
+						</label>
+					</div>
+				</div>
+
+				<!-- 4.5, step 8: XOR challenge — choose the constructed feature, then slide the plane -->
+				<div class="step" class:active={step === 8}>
 					<div class="card">
 						<p><strong>Your turn.</strong> Here's a new dataset.</p>
 						<p>
@@ -388,11 +528,21 @@
 		font-size: var(--20px, 20px);
 	}
 
+	/* Highlighted key term in the intro, in the same gold as the plane/boundary visuals. */
+	.key-term {
+		padding: 0 0.15em;
+		color: var(--color-fg);
+		font-weight: 700;
+		background: linear-gradient(
+			transparent 55%,
+			rgba(217, 164, 0, 0.35) 55%
+		);
+		border-radius: 0.1em;
+	}
+
+	/* sits directly under the description */
 	.scroll-arrow {
-		position: absolute;
-		bottom: 2.5rem;
-		left: 50%;
-		transform: translateX(-50%);
+		margin: 2.5rem auto 0;
 		display: grid;
 		place-items: center;
 		width: 3rem;
@@ -429,10 +579,10 @@
 	@keyframes arrow-bob {
 		0%,
 		100% {
-			transform: translate(-50%, 0);
+			transform: translateY(0);
 		}
 		50% {
-			transform: translate(-50%, 6px);
+			transform: translateY(6px);
 		}
 	}
 
@@ -467,7 +617,7 @@
 	}
 
 	/* Section 4.5: challenge views on top; the main scene is hidden underneath. */
-	.challenge .view-main {
+	.covered .view-main {
 		visibility: hidden;
 	}
 
@@ -612,7 +762,96 @@
 		margin-top: 1rem;
 	}
 
-	.submit-btn {
+	/* Optional-detour link with a down arrow (same chevron as the title page). */
+	.jump-link {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-top: 1.25rem;
+		padding: 0;
+		font-family: var(--font-body);
+		font-size: var(--16px, 16px);
+		font-style: italic;
+		text-align: left;
+		color: var(--color-fg-light);
+		background: none;
+		border: none;
+		cursor: pointer;
+	}
+
+	.jump-link:hover,
+	.jump-link:focus-visible {
+		color: var(--color-fg);
+		text-decoration: underline;
+	}
+
+	.jump-link svg {
+		flex: none;
+		width: 1.1rem;
+		height: 1.1rem;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.snap-note {
+		margin-top: -0.25rem;
+		font-family: var(--font-sans);
+		font-size: var(--14px, 14px);
+		color: var(--color-fg-light);
+	}
+
+	/* Heading inside a step card (the optional "Confused…?" explainer). */
+	.card-title {
+		margin: 0 0 0.75rem;
+		font-size: var(--20px, 20px);
+		line-height: 1.25;
+	}
+
+	/* Collapsible note (4.2's "Wait, are we allowed to do that?"). Commented out while
+	   the dropdown is removed (user decision); restore together with its markup.
+	.dropdown {
+		margin: 0 0 1rem;
+	}
+
+	.dropdown summary {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-weight: 700;
+		cursor: pointer;
+		list-style: none;
+	}
+
+	.dropdown summary::-webkit-details-marker {
+		display: none;
+	}
+
+	(chevron that turns when open)
+	.dropdown summary::before {
+		content: "";
+		flex: none;
+		width: 0.45rem;
+		height: 0.45rem;
+		border-right: 2px solid currentColor;
+		border-bottom: 2px solid currentColor;
+		transform: rotate(-45deg);
+		transition: transform calc(var(--1s) * 0.2);
+	}
+
+	.dropdown[open] summary::before {
+		transform: rotate(45deg);
+	}
+
+	.dropdown p {
+		margin: 0.6rem 0 0;
+	}
+	*/
+
+	.submit-btn,
+	.card-btn {
 		margin-top: 1rem;
 		padding: 0.5rem 1.25rem;
 		font-family: var(--font-sans);
@@ -626,8 +865,34 @@
 	}
 
 	.submit-btn:hover,
-	.submit-btn:focus-visible {
+	.submit-btn:focus-visible,
+	.card-btn:hover,
+	.card-btn:focus-visible {
 		background: var(--color-gray-700);
+	}
+
+	/* 4.2's after-lift card holds a single paragraph, so drop its bottom margin. */
+	.after-lift {
+		margin: 0;
+	}
+
+	/* Secondary, outlined button (4.2's "Reveal answer"), lighter than the main actions. */
+	.reveal-btn {
+		margin: 0 0 1rem;
+		padding: 0.35rem 0.9rem;
+		font-family: var(--font-sans);
+		font-size: var(--14px, 14px);
+		font-weight: 700;
+		color: var(--color-fg);
+		background: var(--color-bg);
+		border: 1px solid var(--color-gray-400);
+		border-radius: 999px;
+		cursor: pointer;
+	}
+
+	.reveal-btn:hover,
+	.reveal-btn:focus-visible {
+		border-color: var(--color-gray-800);
 	}
 
 	.submit-msg {

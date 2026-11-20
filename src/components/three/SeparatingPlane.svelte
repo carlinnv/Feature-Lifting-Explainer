@@ -1,27 +1,47 @@
 <script>
-	// Section 4.3: a horizontal plane z = t, the linear classifier in the lifted 3D space.
-	// Drawn as a thin slab with no outlines. The slab's side faces are more opaque than its
-	// top/bottom, so it reads as a band when seen edge-on but stays see-through from above.
-	// Also draws the ring where the plane cuts the bowl z = x1² + x2²: a circle of radius √t.
-	// `t` is the unscaled plane height; `opacity` (0 → 1) fades everything in.
+	// Sections 4.3–4.4: the plane z = t + tilt·x1, the linear classifier in the lifted 3D space,
+	// plus the dashed ring where it cuts the bowl z = x1² + x2².
+	//
+	// The plane is a thin slab with no outlines. Its side faces are more opaque than its
+	// top/bottom, so it reads as a band edge-on but stays see-through from above.
+	//
+	// The ring is drawn separately in world coordinates. For any t and tilt it is the circle
+	// from planeBowlCircle(); each ring point sits on the bowl at height x1² + x2².
+	//
+	// Props:
+	//   t, tilt        plane parameters (unscaled z)
+	//   planeOpacity   0 → 1 fade for the slab
+	//   ringOpacity    0 → 1 fade for the ring
+	//   ringLift       1 = ring on the bowl in 3D, 0 = ring flattened onto the floor (4.4 collapse)
+	//   glow           0 → 1 "light up": brighter colour and wider line
 	import { T, useThrelte } from "@threlte/core";
 	import { MeshLineGeometry, MeshLineMaterial } from "@threlte/extras";
-	import { BoxGeometry, MeshBasicMaterial, DoubleSide, Vector3 } from "three";
+	import { BoxGeometry, MeshBasicMaterial, DoubleSide, Vector3, Color } from "three";
 	import { EXTENT } from "$data/circles.js";
-	import { Z_SCALE } from "$utils/lift.js";
+	import { Z_SCALE, liftFeature, planeBowlCircle } from "$utils/lift.js";
 
-	let { t = 0, opacity = 0 } = $props();
+	let {
+		t = 0,
+		tilt = 0,
+		planeOpacity = 0,
+		ringOpacity = 0,
+		ringLift = 1,
+		glow = 0
+	} = $props();
 
 	const THICKNESS = 0.05;
 	const COLOR = "#d9a400";
 	const RING_COLOR = "#b88a00"; // darker shade of the plane's gold
+	const GLOW_COLOR = "#ff9f00"; // "lit up" ring
 	const RING_WIDTH = 3; // line width in screen pixels (attenuate off)
+	const GLOW_EXTRA_WIDTH = 2;
 	const DASH_CYCLE = 0.22; // world length of one dash + gap, so dashes keep their size as the ring grows
 	const RING_SEGMENTS = 128;
+	const FLOOR_Z = 0.02;
 	const FACE_OPACITY = 0.2;
 	const SIDE_OPACITY = 0.6;
-	const BOWL_MAX_R = 2.5; // matches Bowl.svelte; no ring once the plane is above the bowl's rim
 
+	// --- slab --------------------------------------------------------------------
 	const geometry = new BoxGeometry(2 * EXTENT, 2 * EXTENT, THICKNESS);
 	const makeMat = () =>
 		new MeshBasicMaterial({ color: COLOR, transparent: true, side: DoubleSide, depthWrite: false });
@@ -33,39 +53,48 @@
 	// Materials are mutated directly (not via props), so request a re-render ourselves.
 	const { invalidate } = useThrelte();
 	$effect(() => {
-		sideMat.opacity = SIDE_OPACITY * opacity;
-		faceMat.opacity = FACE_OPACITY * opacity;
+		sideMat.opacity = SIDE_OPACITY * planeOpacity;
+		faceMat.opacity = FACE_OPACITY * planeOpacity;
 		invalidate();
 	});
 
-	const height = $derived(Z_SCALE * t);
-	const ringR = $derived(Math.sqrt(Math.max(t, 0)));
-	const showRing = $derived(ringR > 0.05 && ringR <= BOWL_MAX_R);
-	// Closed circle (first point repeated at the end).
+	// Displayed slope along x1 is Z_SCALE·tilt. Rotating about the x2 (y) axis by −atan(slope)
+	// tilts the slab; stretching it by 1/cos keeps its footprint at ±EXTENT in x1.
+	const angle = $derived(Math.atan(Z_SCALE * tilt));
+
+	// --- ring --------------------------------------------------------------------
+	const circle = $derived(planeBowlCircle(t, tilt));
+	const showRing = $derived(circle.r > 0.05 && ringOpacity > 0.001);
+
+	// Closed circle (first point repeated at the end), each point on the bowl surface.
 	const ringPoints = $derived(
 		Array.from({ length: RING_SEGMENTS + 1 }, (_, i) => {
 			const a = (i / RING_SEGMENTS) * 2 * Math.PI;
-			return new Vector3(ringR * Math.cos(a), ringR * Math.sin(a), 0);
+			const x = circle.cx + circle.r * Math.cos(a);
+			const y = circle.cy + circle.r * Math.sin(a);
+			return new Vector3(x, y, FLOOR_Z + ringLift * Z_SCALE * liftFeature(x, y));
 		})
 	);
+
+	const ringColor = $derived(new Color(RING_COLOR).lerp(new Color(GLOW_COLOR), glow));
 </script>
 
-<T.Group position.z={height} visible={opacity > 0.001}>
-	<T.Mesh {geometry} material={materials} />
-
-	{#if showRing}
-		<T.Mesh>
-			<MeshLineGeometry points={ringPoints} />
-			<MeshLineMaterial
-				color={RING_COLOR}
-				width={RING_WIDTH}
-				attenuate={false}
-				dashArray={DASH_CYCLE / (2 * Math.PI * ringR)}
-				dashRatio={0.45}
-				transparent
-				opacity={opacity}
-				depthWrite={false}
-			/>
-		</T.Mesh>
-	{/if}
+<T.Group position.z={Z_SCALE * t} rotation.y={-angle} visible={planeOpacity > 0.001}>
+	<T.Mesh {geometry} material={materials} scale.x={1 / Math.cos(angle)} />
 </T.Group>
+
+{#if showRing}
+	<T.Mesh>
+		<MeshLineGeometry points={ringPoints} />
+		<MeshLineMaterial
+			color={ringColor}
+			width={RING_WIDTH + GLOW_EXTRA_WIDTH * glow}
+			attenuate={false}
+			dashArray={DASH_CYCLE / (2 * Math.PI * circle.r)}
+			dashRatio={0.45}
+			transparent
+			opacity={ringOpacity}
+			depthWrite={false}
+		/>
+	</T.Mesh>
+{/if}

@@ -13,7 +13,8 @@
 	import SplitLine from "./SplitLine.svelte";
 	import Bowl from "./Bowl.svelte";
 	import SeparatingPlane from "./SeparatingPlane.svelte";
-	import { plane } from "$stores/explainer.svelte.js";
+	import { plane, mainView } from "$stores/explainer.svelte.js";
+	import { CAM_R, VIEW_2D, VIEW_3D, viewToPosition } from "$utils/camera.js";
 
 	let { step = 0 } = $props();
 
@@ -28,6 +29,8 @@
 	// Rotation is introduced with the bowl ("Try it yourself: drag the plot…"), not before.
 	const canRotate = $derived(step >= 3);
 	const showPlane = $derived(step >= 4);
+	// 4.3 is always a horizontal plane; the tilt control only exists from 4.4 on.
+	const tilt = $derived(step >= 5 ? plane.tilt : 0);
 
 	// Animated values (tweened by GSAP, read reactively by child components).
 	const anim = $state({ lift: 0, bowl: 0, plane: 0 });
@@ -39,12 +42,9 @@
 	);
 
 	// --- camera ------------------------------------------------------------------
-	// The camera sits on a sphere of radius R around a target on the z axis.
-	// phi = angle from straight-down (0 = top view), theta = azimuth around z.
-	const R = 12;
+	// Framing (sphere radius, 2D/3D views) is shared with CollapseScene via $utils/camera.js.
+	const R = CAM_R;
 	const DURATION = 1.6;
-	const VIEW_2D = { phi: 1e-4, theta: -Math.PI / 2, tz: 0 };
-	const VIEW_3D = { phi: 1.1, theta: -Math.PI / 2 + 0.6, tz: 1.0 };
 
 	let camera = $state();
 	let controls = $state();
@@ -52,12 +52,15 @@
 
 	function applyView(v) {
 		controls.target.set(0, 0, v.tz);
-		camera.position.set(
-			R * Math.sin(v.phi) * Math.cos(v.theta),
-			R * Math.sin(v.phi) * Math.sin(v.theta),
-			v.tz + R * Math.cos(v.phi)
-		);
+		camera.position.set(...viewToPosition(v));
 		controls.update();
+		syncMainView();
+	}
+
+	// Keep the shared copy of this camera's view current (used by the 4.4 clone).
+	function syncMainView() {
+		if (!camera || !controls) return;
+		Object.assign(mainView, currentView());
 	}
 
 	function currentView() {
@@ -124,6 +127,7 @@
 >
 	<OrbitControls
 		bind:ref={controls}
+		onchange={syncMainView}
 		enabled={canRotate && !animating}
 		enableZoom={false}
 		enablePan={false}
@@ -135,7 +139,7 @@
 <Axes lift={anim.lift} />
 <Points lift={anim.lift} />
 <Bowl opacity={anim.bowl} />
-<SeparatingPlane t={plane.t} opacity={anim.plane} />
+<SeparatingPlane t={plane.t} {tilt} planeOpacity={anim.plane} ringOpacity={anim.plane} />
 
 {#if showLine}
 	<SplitLine />

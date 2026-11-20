@@ -10,8 +10,11 @@
 		plane,
 		PLANE_MIN,
 		PLANE_MAX,
+		collapse,
 		COLORS
 	} from "$stores/explainer.svelte.js";
+	import CollapseScene from "$components/three/CollapseScene.svelte";
+	import { fade } from "svelte/transition";
 	import { circles } from "$data/circles.js";
 
 	let scrollIndex = $state(undefined);
@@ -20,6 +23,25 @@
 
 	const lineCorrect = $derived(Math.round(lineScore.current.accuracy * circles.length));
 	const planeCorrect = $derived(planeScore.current.correct);
+
+	// Section 4.4: at step 5 the user clicks "Collapse into 2D", which splits the visual into the
+	// 3D view (left) and a clone that collapses into 2D (right).
+	const split = $derived(step >= 5 && collapse.on);
+	const showCollapseButton = $derived(step === 5 && !collapse.on);
+
+	// Only react once the step has settled: Scrolly can report a neighbouring step for a moment
+	// while jumping (e.g. 4 → 6 → 5 on narrow screens), which must not trigger these.
+	const SETTLE_MS = 300;
+	$effect(() => {
+		const s = step;
+		const timer = setTimeout(() => {
+			// Scrolling back above 4.4 resets it, so the button is offered again next time.
+			if (s < 5) collapse.on = false;
+			// Step 6's controls need the 2D view; if the user scrolled past without clicking, collapse now.
+			else if (s >= 6) collapse.on = true;
+		}, SETTLE_MS);
+		return () => clearTimeout(timer);
+	});
 </script>
 
 <header class="intro">
@@ -29,10 +51,28 @@
 
 <svelte:boundary onerror={(e) => console.error(e)}>
 	<section class="explainer">
-		<div class="visual">
-			<Canvas toneMapping={NoToneMapping}>
-				<Scene {step} />
-			</Canvas>
+		<div class="visual" class:split>
+			<div class="view view-main">
+				<Canvas toneMapping={NoToneMapping}>
+					<Scene {step} />
+				</Canvas>
+				{#if split}
+					<span class="view-label" transition:fade>3D: <i>x</i><sub>1</sub>, <i>x</i><sub>2</sub>, <i>z</i></span>
+				{/if}
+				{#if showCollapseButton}
+					<button class="collapse-btn" transition:fade onclick={() => (collapse.on = true)}>
+						Collapse into 2D
+					</button>
+				{/if}
+			</div>
+			{#if split}
+				<div class="view view-collapse" transition:fade={{ duration: 400 }}>
+					<Canvas toneMapping={NoToneMapping}>
+						<CollapseScene />
+					</Canvas>
+					<span class="view-label">2D: <i>x</i><sub>1</sub>, <i>x</i><sub>2</sub></span>
+				</div>
+			{/if}
 		</div>
 
 		<div class="steps">
@@ -129,6 +169,48 @@
 						<Readout correct={planeCorrect} total={circles.length} />
 					</div>
 				</div>
+
+				<!-- 4.4, step 5: collapse back into 2D -->
+				<div class="step" class:active={step === 5}>
+					<div class="card">
+						<p>So what does the plane do to our original 2D data?</p>
+						<p>
+							Click <strong>Collapse into 2D</strong> above the graph. A copy of the 3D view will
+							appear on the right and flatten back into 2D. The dashed ring where the plane cuts the
+							bowl lights up, and as the points drop back to the floor, the ring comes down with
+							them.
+						</p>
+						<p>
+							It lands as a <strong>circle</strong>. Points inside the circle are predicted
+							<strong style:color={COLORS.blue}>blue</strong>, and points outside are predicted
+							<strong style:color={COLORS.red}>red</strong>.
+						</p>
+					</div>
+				</div>
+
+				<!-- 4.4, step 6: move the plane, watch the 2D boundary.
+				     A "Plane tilt" slider (bind:value={plane.tilt}, range ±TILT_MAX) was removed for now
+				     by user decision (possible confusion); the tilt support in the scenes is kept. -->
+				<div class="step" class:active={step === 6}>
+					<div class="card">
+						<p>
+							<strong>Try it yourself:</strong> move the plane up and down. Watch how the circle
+							changes in the 2D view.
+						</p>
+						<label class="slider">
+							<span class="slider-label">Plane height</span>
+							<input
+								type="range"
+								min={PLANE_MIN}
+								max={PLANE_MAX}
+								step="0.05"
+								bind:value={plane.t}
+							/>
+							<span class="slider-value">{plane.t.toFixed(2)}</span>
+						</label>
+						<Readout correct={planeCorrect} total={circles.length} />
+					</div>
+				</div>
 			</Scrolly>
 		</div>
 	</section>
@@ -156,6 +238,74 @@
 		position: sticky;
 		top: 0;
 		height: 100vh;
+	}
+
+	/* Section 4.4: the main view slides to the left half; the collapse view takes the right. */
+	.view {
+		position: absolute;
+		top: 0;
+		height: 100%;
+		/* lets labels/buttons be placed relative to the plot via cqmin units */
+		container-type: size;
+	}
+
+	.view-main {
+		left: 0;
+		width: 100%;
+		transition: width calc(var(--1s) * 0.6) ease-in-out;
+	}
+
+	.split .view-main {
+		width: 50%;
+	}
+
+	.view-collapse {
+		right: 0;
+		width: 50%;
+		border-left: 1px solid var(--color-border);
+	}
+
+	/* The scene fits the plot into the view's shorter side (min(w, h) = 100cqmin), centred,
+	   so 50% − 50cqmin is the top of the plot's framing box. Labels and the button sit just
+	   above it instead of at the top of the whole panel. */
+	.view-label,
+	.collapse-btn {
+		position: absolute;
+		top: calc(50% - 50cqmin + 0.5rem);
+		left: 50%;
+		transform: translate(-50%, -100%);
+	}
+
+	.collapse-btn {
+		/* the 3D view is zoomed out to 82% (Scene.svelte), so its framing box is smaller */
+		top: calc(50% - 41cqmin);
+		padding: 0.5rem 1rem;
+		font-family: var(--font-sans);
+		font-size: var(--16px, 16px);
+		font-weight: 700;
+		color: var(--color-white);
+		background: var(--color-gray-900);
+		border: none;
+		border-radius: 999px;
+		cursor: pointer;
+		z-index: var(--z-top);
+	}
+
+	.collapse-btn:hover,
+	.collapse-btn:focus-visible {
+		background: var(--color-gray-700);
+	}
+
+	.view-label {
+		padding: 0.2rem 0.6rem;
+		font-family: var(--font-sans);
+		font-size: var(--14px, 14px);
+		color: var(--color-fg-light);
+		background: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: 999px;
+		white-space: nowrap;
+		pointer-events: none;
 	}
 
 	.steps {

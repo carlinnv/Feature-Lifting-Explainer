@@ -18,8 +18,3 @@ Uses:
 - The Pudding's [Svelte Starter Template](https://github.com/the-pudding/svelte-starter) (SvelteKit + Svelte 5, includes [d3](https://d3js.org/))
 - [Threlte](https://threlte.xyz/) (Svelte wrapper for [three.js](https://threejs.org/))
 - [GSAP](https://gsap.com/)
-
-# Features 
-This scroll-driven explainer walks through feature lifting step-by-step. 
-
-1. ##

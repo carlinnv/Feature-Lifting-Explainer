@@ -77,6 +77,12 @@
 							squared distance from the origin. Points near the center get a small <i>z</i>; points
 							far away get a large one.
 						</p>
+						<p class="note">
+							<strong>Wait, are we allowed to do that?</strong> Yes. A feature is just a number we
+							compute from a data point. The classifier doesn't care where its inputs come from, so
+							<i>x</i><sub>1</sub><sup>2</sup> + <i>x</i><sub>2</sub><sup>2</sup> is as valid an input
+							as <i>x</i><sub>1</sub> itself.
+						</p>
 						<p>Watch as each point is lifted to its height <i>z</i>.</p>
 					</div>
 				</div>
@@ -86,9 +92,11 @@
 					<div class="card">
 						<p><strong>Try it yourself:</strong> drag the plot to rotate it.</p>
 						<p>
-							The points now sit on a bowl. The
-							<strong style:color={COLORS.blue}>blue</strong> points are near the bottom, and the
-							<strong style:color={COLORS.red}>red</strong> points are up the sides.
+							Using <i>z</i> as the height makes the points form a bowl shape. Points close to the
+							origin have a small <i>z</i>, so the
+							<strong style:color={COLORS.blue}>blue</strong> points stay near the bottom. Points
+							farther out have a larger <i>z</i>, so the
+							<strong style:color={COLORS.red}>red</strong> points rise up the sides.
 						</p>
 					</div>
 				</div>
@@ -143,6 +151,14 @@
 
 	.step.active .card {
 		opacity: 1;
+	}
+
+	.note {
+		padding: 0.75rem 1rem;
+		background: var(--color-gray-50);
+		border-left: 3px solid var(--color-gray-400);
+		border-radius: var(--radius-sm);
+		font-size: var(--16px, 16px);
 	}
 
 	.readout {

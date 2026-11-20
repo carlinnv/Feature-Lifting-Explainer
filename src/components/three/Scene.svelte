@@ -23,6 +23,8 @@
 	const is3D = $derived(step >= 2);
 	const showLine = $derived(step === 1);
 	const showBowl = $derived(step >= 3);
+	// Rotation is introduced with the bowl ("Try it yourself: drag the plot…"), not before.
+	const canRotate = $derived(step >= 3);
 
 	// Animated values (tweened by GSAP, read reactively by child components).
 	const anim = $state({ lift: 0, bowl: 0 });
@@ -97,7 +99,7 @@
 	// OrbitControls disables touch scrolling on the canvas when it is created. Only block
 	// touch scrolling on steps where dragging on the canvas does something.
 	$effect(() => {
-		const interactive = showLine || is3D;
+		const interactive = showLine || canRotate;
 		dom.style.touchAction = interactive ? "none" : "";
 	});
 </script>
@@ -111,7 +113,7 @@
 >
 	<OrbitControls
 		bind:ref={controls}
-		enabled={is3D && !animating}
+		enabled={canRotate && !animating}
 		enableZoom={false}
 		enablePan={false}
 		minPolarAngle={0}

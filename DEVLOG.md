@@ -103,3 +103,27 @@
 - User review of the 4.2 animation, bowl surface, and draft copy.
 - User direction on how to handle confusion area #1 (constructing new features).
 - Section 4.3: slide a horizontal plane in 3D with an accuracy readout.
+
+### User reflection on Section 4.2 (milestone)
+
+- **What worked (user):** "the visualizations look smooth."
+- **What I would change (user):** Reword "the points now sit on a bowl" so it suggests the points *form* a bowl shape, to show more clearly that using z as height causes the bowl shape. Don't let users rotate the graph until the "Try it yourself: drag the plot…" step, where the bowl appears.
+
+## 2026-11-20: Section 4.2 revisions (user feedback)
+
+**Task:** "add a note in the text for now. [...] rather than saying 'the points now sit on a bowl', i'd change the wording to suggest that the points form a bowl shape [...] do not let the users move the graph around until this section"
+
+**Changes (completed, by Claude Code):**
+- Confusion area #1 (why we can construct new features): the user decided to handle it with a note in the text for now. Added a shaded aside to step 2: "Wait, are we allowed to do that? Yes. A feature is just a number we compute from a data point. The classifier doesn't care where its inputs come from…" (draft wording by Claude Code).
+- Step 3 text reworded to say that using z as the height makes the points *form* a bowl shape, with the reason: small z near the origin keeps blue low, larger z farther out lifts red up the sides (wording by Claude Code, following the user's direction).
+- Rotation is now enabled only from step 3 (the bowl step), not step 2. Touch scrolling over the canvas is allowed again on step 2, since dragging no longer does anything there.
+
+**Files Modified:** `src/components/Index.svelte`, `src/components/three/Scene.svelte`
+
+**Issues Encountered:** The first automated check reported that step 3 didn't rotate either. That was a bug in the test script, not the page: the screenshot crop used viewport coordinates where page coordinates were needed, so both "before" and "after" images were blank.
+
+**Resolution:** Switched the test to full-viewport screenshots. No change to the page was needed.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds. Headless Chrome (desktop 1400×900), no console errors: at step 2 a mouse drag on the canvas did not change the view and touch-action is `auto`; at step 3 a drag rotated the view and touch-action is `none`. Rendered text of steps 2–3 checked, and the step 2 screenshot checked for the note's layout.
+
+**Next Steps:** Section 4.3: slide a horizontal plane in the 3D view with an accuracy readout.

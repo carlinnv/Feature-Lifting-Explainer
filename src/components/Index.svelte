@@ -11,9 +11,16 @@
 		PLANE_MIN,
 		PLANE_MAX,
 		collapse,
+		challenge,
+		challengeScore,
+		selectFeature,
 		COLORS
 	} from "$stores/explainer.svelte.js";
 	import CollapseScene from "$components/three/CollapseScene.svelte";
+	import ChallengeScene3D from "$components/three/ChallengeScene3D.svelte";
+	import ChallengeScene2D from "$components/three/ChallengeScene2D.svelte";
+	import { FEATURES, featureById, featureRange } from "$utils/features.js";
+	import { xor } from "$data/xor.js";
 	import { fade } from "svelte/transition";
 	import { circles } from "$data/circles.js";
 
@@ -26,8 +33,35 @@
 
 	// Section 4.4: at step 5 the user clicks "Collapse into 2D", which splits the visual into the
 	// 3D view (left) and a clone that collapses into 2D (right).
-	const split = $derived(step >= 5 && collapse.on);
+	const split = $derived(step >= 5 && step <= 6 && collapse.on);
 	const showCollapseButton = $derived(step === 5 && !collapse.on);
+
+	// Section 4.5: the XOR challenge replaces the visual with its own 3D (left) and 2D (right)
+	// views. The main scene stays mounted underneath (hidden) so scrolling back is seamless.
+	const inChallenge = $derived(step >= 7);
+	const challengeCorrect = $derived(challengeScore.current.correct);
+	const challengeFeature = $derived(featureById(challenge.featureId));
+	const challengeRange = $derived(featureRange(xor, challengeFeature.fn));
+	// The 3D view (and the side shading) appears only when the user presses Submit with every
+	// point right (user decision); it then stays. A wrong submit shows a short message, which
+	// clears as soon as the feature or plane height changes.
+	let submitMessage = $state("");
+	function submitChallenge() {
+		if (challengeCorrect === xor.length) {
+			challenge.revealed = true;
+			submitMessage = "";
+		} else {
+			submitMessage = `Not quite: ${challengeCorrect} of ${xor.length} points are on the correct side. Try moving the plane or picking a different feature.`;
+		}
+	}
+	$effect(() => {
+		challenge.featureId;
+		challenge.t;
+		submitMessage = "";
+	});
+
+	// 2-decimal display without "-0.00" (the x1·x2 slider passes through tiny negatives near 0)
+	const fmt = (v) => (Math.abs(v) < 0.005 ? 0 : v).toFixed(2);
 
 	// Only react once the step has settled: Scrolly can report a neighbouring step for a moment
 	// while jumping (e.g. 4 → 6 → 5 on narrow screens), which must not trigger these.
@@ -39,6 +73,8 @@
 			if (s < 5) collapse.on = false;
 			// Step 6's controls need the 2D view; if the user scrolled past without clicking, collapse now.
 			else if (s >= 6) collapse.on = true;
+			// Scrolling back above 4.5 hides its 3D view again, so it's re-earned next time.
+			if (s < 7) challenge.revealed = false;
 		}, SETTLE_MS);
 		return () => clearTimeout(timer);
 	});
@@ -51,7 +87,28 @@
 
 <svelte:boundary onerror={(e) => console.error(e)}>
 	<section class="explainer">
-		<div class="visual" class:split>
+		<div class="visual" class:split class:challenge={inChallenge}>
+			{#if inChallenge}
+				<!-- 3D view only after the challenge is solved; the 2D view then slides to the right half -->
+				{#if challenge.revealed}
+					<div class="view view-left" transition:fade={{ duration: 600, delay: 300 }}>
+						<Canvas toneMapping={NoToneMapping}>
+							<ChallengeScene3D />
+						</Canvas>
+						<span class="view-label">3D: <i>x</i><sub>1</sub>, <i>x</i><sub>2</sub>, <i>z</i></span>
+					</div>
+				{/if}
+				<div
+					class="view view-right"
+					class:half={challenge.revealed}
+					transition:fade={{ duration: 400 }}
+				>
+					<Canvas toneMapping={NoToneMapping}>
+						<ChallengeScene2D />
+					</Canvas>
+					<span class="view-label">2D: <i>x</i><sub>1</sub>, <i>x</i><sub>2</sub></span>
+				</div>
+			{/if}
 			<div class="view view-main">
 				<Canvas toneMapping={NoToneMapping}>
 					<Scene {step} />
@@ -211,6 +268,71 @@
 						<Readout correct={planeCorrect} total={circles.length} />
 					</div>
 				</div>
+
+				<!-- 4.5, step 7: XOR challenge — choose the constructed feature, then slide the plane -->
+				<div class="step" class:active={step === 7}>
+					<div class="card">
+						<p><strong>Your turn.</strong> Here's a new dataset.</p>
+						<p>
+							This time the <strong style:color={COLORS.blue}>blue</strong> points sit in the
+							top-right and bottom-left corners, and the
+							<strong style:color={COLORS.red}>red</strong> points in the other two. Our old feature
+							<i>z</i> = <i>x</i><sub>1</sub><sup>2</sup> + <i>x</i><sub>2</sub><sup>2</sup> is
+							selected below. Can it separate them?
+						</p>
+						<p>
+							<strong>Try it yourself:</strong> pick a feature to lift the points with, then slide the
+							plane. Each side of the plane is predicted whichever class fits it better. Can you
+							find a feature that gets every point right?
+						</p>
+						<p class="features-label">New feature <i>z</i> =</p>
+						<div class="features" role="group" aria-label="Constructed feature z">
+							{#each FEATURES as f (f.id)}
+								<button
+									class="feature-btn"
+									aria-pressed={challenge.featureId === f.id}
+									onclick={() => selectFeature(f.id)}
+								>
+									{@html f.html}
+								</button>
+							{/each}
+						</div>
+						<label class="slider">
+							<span class="slider-label">Plane height</span>
+							<input
+								type="range"
+								min={challengeRange.min}
+								max={challengeRange.max}
+								step={(challengeRange.max - challengeRange.min) / 200}
+								bind:value={challenge.t}
+							/>
+							<span class="slider-value">{fmt(challenge.t)}</span>
+						</label>
+						<!-- Accuracy is hidden until a correct Submit (user decision), so the user commits
+						     to an answer; a wrong Submit still reports the score in its message. -->
+						{#if challenge.revealed}
+							<Readout correct={challengeCorrect} total={xor.length} />
+						{/if}
+						{#if !challenge.revealed}
+							<button class="submit-btn" onclick={submitChallenge}>Submit</button>
+							{#if submitMessage}
+								<p class="submit-msg" role="status" transition:fade={{ duration: 200 }}>
+									{submitMessage}
+								</p>
+							{/if}
+						{/if}
+						{#if challenge.revealed}
+							<p class="note reveal" transition:fade>
+								<strong>Why does it work?</strong> The 3D view on the left shows the points lifted
+								to their new height <i>z</i>. With <i>z</i> = <i>x</i><sub>1</sub> · <i>x</i><sub
+									>2</sub
+								>, the <strong style:color={COLORS.blue}>blue</strong> points rise above the plane and
+								the <strong style:color={COLORS.red}>red</strong> points drop below it. Try the other
+								features to see why they can't do the same.
+							</p>
+						{/if}
+					</div>
+				</div>
 			</Scrolly>
 		</div>
 	</section>
@@ -257,6 +379,67 @@
 
 	.split .view-main {
 		width: 50%;
+	}
+
+	/* Section 4.5: challenge views on top; the main scene is hidden underneath. */
+	.challenge .view-main {
+		visibility: hidden;
+	}
+
+	.view-left {
+		left: 0;
+		width: 50%;
+		z-index: var(--z-base);
+		background: var(--color-bg);
+	}
+
+	/* 4.5's 2D view: full width until the challenge is solved, then the right half */
+	.view-right {
+		right: 0;
+		width: 100%;
+		z-index: var(--z-base);
+		background: var(--color-bg);
+		transition: width calc(var(--1s) * 0.6) ease-in-out;
+	}
+
+	.view-right.half {
+		width: 50%;
+		border-left: 1px solid var(--color-border);
+	}
+
+	.features {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-top: 0.75rem;
+	}
+
+	.feature-btn {
+		padding: 0.35rem 0.8rem;
+		font-family: var(--font-serif);
+		font-size: var(--16px, 16px);
+		color: var(--color-fg);
+		background: var(--color-bg);
+		border: 1px solid var(--color-gray-400);
+		border-radius: 999px;
+		cursor: pointer;
+	}
+
+	.feature-btn:hover {
+		border-color: var(--color-gray-800);
+	}
+
+	.feature-btn[aria-pressed="true"] {
+		color: var(--color-white);
+		background: var(--color-gray-900);
+		border-color: var(--color-gray-900);
+	}
+
+	.features-label {
+		margin: 1rem 0 0;
+		font-family: var(--font-sans);
+		font-size: var(--14px, 14px);
+		color: var(--color-fg-light);
 	}
 
 	.view-collapse {
@@ -338,6 +521,35 @@
 		border-left: 3px solid var(--color-gray-400);
 		border-radius: var(--radius-sm);
 		font-size: var(--16px, 16px);
+	}
+
+	.note.reveal {
+		margin-top: 1rem;
+	}
+
+	.submit-btn {
+		margin-top: 1rem;
+		padding: 0.5rem 1.25rem;
+		font-family: var(--font-sans);
+		font-size: var(--16px, 16px);
+		font-weight: 700;
+		color: var(--color-white);
+		background: var(--color-gray-900);
+		border: none;
+		border-radius: 999px;
+		cursor: pointer;
+	}
+
+	.submit-btn:hover,
+	.submit-btn:focus-visible {
+		background: var(--color-gray-700);
+	}
+
+	.submit-msg {
+		margin: 0.75rem 0 0;
+		font-family: var(--font-sans);
+		font-size: var(--14px, 14px);
+		color: #b3261e;
 	}
 
 	.slider {

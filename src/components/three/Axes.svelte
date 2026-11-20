@@ -5,7 +5,11 @@
 	import { EXTENT } from "$data/circles.js";
 
 	// lift (0 → 1) grows the z axis out of the floor in section 4.2
-	let { lift = 0 } = $props();
+	// zLabel (HTML) names the lifted feature; section 4.5 passes the user's chosen one.
+	let {
+		lift = 0,
+		zLabel = "<i>z</i> = <i>x</i><sub>1</sub><sup>2</sup> + <i>x</i><sub>2</sub><sup>2</sup>"
+	} = $props();
 
 	const Z_AXIS_H = 3.4;
 	const AXIS_W = 0.025;
@@ -68,9 +72,7 @@
 		<T.MeshBasicMaterial color="#888888" />
 	</T.Mesh>
 	<HTML position={[0, 0, Z_AXIS_H * lift + 0.3]} center pointerEvents="none">
-		<span class="axis-label" style:opacity={lift}
-			>z = x<sub>1</sub><sup>2</sup> + x<sub>2</sub><sup>2</sup></span
-		>
+		<span class="axis-label" style:opacity={lift}>{@html zLabel}</span>
 	</HTML>
 {/if}
 

@@ -2,6 +2,8 @@
 import { circles } from "$data/circles.js";
 import { scoreSplit } from "$utils/linearSplit.js";
 import { scorePlane } from "$utils/lift.js";
+import { xor } from "$data/xor.js";
+import { FEATURES, featureById, featureRange, scoreThreshold } from "$utils/features.js";
 
 export const COLORS = {
 	blue: "#4477AA",
@@ -49,5 +51,34 @@ export const mainView = { phi: 1e-4, theta: -Math.PI / 2, tz: 0 };
 export const tiltedPlaneScore = {
 	get current() {
 		return scorePlane(plane.t, plane.tilt, circles);
+	}
+};
+
+// Section 4.5: the XOR challenge. The user picks which constructed feature z to lift the
+// points with, then slides a horizontal plane z = t. Changing the feature resets t to a
+// starting height 70% of the way up that feature's range (never a perfect split).
+export const CHALLENGE_START = 0.7;
+
+function startHeight(featureId) {
+	const { min, max } = featureRange(xor, featureById(featureId).fn);
+	return min + CHALLENGE_START * (max - min);
+}
+
+// `revealed`: the 3D view is hidden until the user first gets 100%, then shown as the
+// explanation (user decision). Reset when the user scrolls back above 4.5.
+export const challenge = $state({
+	featureId: FEATURES[0].id,
+	t: startHeight(FEATURES[0].id),
+	revealed: false
+});
+
+export function selectFeature(id) {
+	challenge.featureId = id;
+	challenge.t = startHeight(id);
+}
+
+export const challengeScore = {
+	get current() {
+		return scoreThreshold(xor, featureById(challenge.featureId).fn, challenge.t);
 	}
 };

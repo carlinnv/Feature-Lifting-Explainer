@@ -23,6 +23,7 @@
 	let {
 		t = 0,
 		tilt = 0,
+		zScale = Z_SCALE, // display scale for t (section 4.5 uses a per-feature scale)
 		planeOpacity = 0,
 		ringOpacity = 0,
 		ringLift = 1,
@@ -79,7 +80,7 @@
 	const ringColor = $derived(new Color(RING_COLOR).lerp(new Color(GLOW_COLOR), glow));
 </script>
 
-<T.Group position.z={Z_SCALE * t} rotation.y={-angle} visible={planeOpacity > 0.001}>
+<T.Group position.z={zScale * t} rotation.y={-angle} visible={planeOpacity > 0.001}>
 	<T.Mesh {geometry} material={materials} scale.x={1 / Math.cos(angle)} />
 </T.Group>
 

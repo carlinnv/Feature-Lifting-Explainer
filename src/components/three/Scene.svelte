@@ -1,15 +1,28 @@
 <script>
-	// Placeholder scene to verify the Threlte setup. Top-down orthographic camera
-	// so the x_1/x_2 plane reads as a flat 2D plot; z (the lifted feature) points at the viewer.
-	import { T } from "@threlte/core";
-	import { Grid } from "@threlte/extras";
+	// Single persistent scene for the explainer. Coordinate convention:
+	// three.js x = feature x1, y = feature x2, z = lifted feature (used from section 4.2 on).
+	// The top-down orthographic camera makes the x1/x2 plane read as a flat 2D plot.
+	import { T, useThrelte } from "@threlte/core";
+	import { interactivity } from "@threlte/extras";
+	import { EXTENT } from "$data/circles.js";
+	import Axes from "./Axes.svelte";
+	import Points from "./Points.svelte";
+	import SplitLine from "./SplitLine.svelte";
+
+	let { step = 0 } = $props();
+
+	interactivity();
+
+	const { size } = useThrelte();
+	// Fit the plot (plus room for axis labels) into the shorter canvas side.
+	const zoom = $derived(Math.min($size.width, $size.height) / (2 * (EXTENT + 0.9)));
 </script>
 
-<T.OrthographicCamera makeDefault position={[0, 0, 10]} zoom={40} up={[0, 1, 0]} />
+<T.OrthographicCamera makeDefault position={[0, 0, 10]} {zoom} />
 
-<Grid plane="xy" cellSize={1} sectionSize={5} gridSize={[10, 10]} />
+<Axes />
+<Points />
 
-<T.Mesh position={[0, 0, 0]}>
-	<T.SphereGeometry args={[0.15, 16, 16]} />
-	<T.MeshBasicMaterial color="steelblue" />
-</T.Mesh>
+{#if step >= 1}
+	<SplitLine />
+{/if}

@@ -1,0 +1,69 @@
+<script>
+	// 2D axes for the x1/x2 plane: light grid, x1/x2 axes through the origin, plot border, labels.
+	import { T } from "@threlte/core";
+	import { HTML } from "@threlte/extras";
+	import { EXTENT } from "$data/circles.js";
+
+	const AXIS_W = 0.025;
+	const GRID_W = 0.01;
+	const span = 2 * EXTENT;
+
+	// integer grid lines strictly inside the plot
+	const ticks = [];
+	for (let i = Math.ceil(-EXTENT); i <= Math.floor(EXTENT); i++) {
+		if (i !== 0 && Math.abs(i) < EXTENT) ticks.push(i);
+	}
+</script>
+
+<!-- grid -->
+{#each ticks as t (t)}
+	<T.Mesh position={[t, 0, -0.02]}>
+		<T.PlaneGeometry args={[GRID_W, span]} />
+		<T.MeshBasicMaterial color="#e2e2e2" />
+	</T.Mesh>
+	<T.Mesh position={[0, t, -0.02]}>
+		<T.PlaneGeometry args={[span, GRID_W]} />
+		<T.MeshBasicMaterial color="#e2e2e2" />
+	</T.Mesh>
+{/each}
+
+<!-- axes through origin -->
+<T.Mesh position={[0, 0, -0.01]}>
+	<T.PlaneGeometry args={[span, AXIS_W]} />
+	<T.MeshBasicMaterial color="#888888" />
+</T.Mesh>
+<T.Mesh position={[0, 0, -0.01]}>
+	<T.PlaneGeometry args={[AXIS_W, span]} />
+	<T.MeshBasicMaterial color="#888888" />
+</T.Mesh>
+
+<!-- border -->
+{#each [-1, 1] as s (s)}
+	<T.Mesh position={[0, s * EXTENT, -0.01]}>
+		<T.PlaneGeometry args={[span + AXIS_W, AXIS_W]} />
+		<T.MeshBasicMaterial color="#bbbbbb" />
+	</T.Mesh>
+	<T.Mesh position={[s * EXTENT, 0, -0.01]}>
+		<T.PlaneGeometry args={[AXIS_W, span + AXIS_W]} />
+		<T.MeshBasicMaterial color="#bbbbbb" />
+	</T.Mesh>
+{/each}
+
+<!-- labels -->
+<HTML position={[EXTENT + 0.35, 0, 0]} center pointerEvents="none">
+	<span class="axis-label">x<sub>1</sub></span>
+</HTML>
+<HTML position={[0, EXTENT + 0.35, 0]} center pointerEvents="none">
+	<span class="axis-label">x<sub>2</sub></span>
+</HTML>
+
+<style>
+	.axis-label {
+		font-family: var(--font-serif);
+		font-style: italic;
+		font-size: var(--18px, 18px);
+		color: #555;
+		user-select: none;
+		white-space: nowrap;
+	}
+</style>

@@ -8,14 +8,16 @@
 	//   3. predicted-class shading fades in around the now-flat dashed circle
 	// After that it stays a 2D view that follows the plane height slider.
 	//
-	// `contours` (0 → 1, from step 6): faint rings where z = 1, 2, …, 6 with labels, to show a
-	// cut at one z value must follow one ring, and every ring is a circle. Only shown once the
-	// collapse has finished.
+	// `contours` (0 → 1, the "Confused…?" step): faint rings at every whole-number z across the
+	// whole plot, to show a cut at one z value must follow one ring, and every ring is a circle.
+	// Only shown once the collapse has finished. Hovering near a ring emphasises it and shows
+	// its z. `flashKey` (a counter): each increment flashes all rings dark, then fades them back.
 	import { T, useThrelte } from "@threlte/core";
 	import { HTML } from "@threlte/extras";
 	import { Tween } from "svelte/motion";
 	import { untrack } from "svelte";
 	import { gsap } from "gsap";
+	import { Vector3 } from "three";
 	import { EXTENT } from "$data/circles.js";
 	import { plane, mainView } from "$stores/explainer.svelte.js";
 	import { planeBowlCircle } from "$utils/lift.js";
@@ -27,9 +29,11 @@
 	import Regions2D from "./Regions2D.svelte";
 	import FeatureRegions2D from "./FeatureRegions2D.svelte";
 
-	let { contours = 0 } = $props();
+	let { contours = 0, flashKey = 0 } = $props();
 
-	const { size, invalidate } = useThrelte();
+	const { size, invalidate, dom, camera: cameraStore } = useThrelte();
+
+	const anim = $state({ lift: 1, bowl: 1, plane: 1, glow: 0, region: 0, flash: 0 });
 
 	// Rings fade in/out; never before the collapse is done (anim.region reaches 1 at the end).
 	const ringFade = new Tween(0, { duration: 700 });
@@ -38,14 +42,55 @@
 	});
 	const rings = $derived(ringFade.current * anim.region);
 
-	// Ring z = k has radius √k; labels sit upper right, alternating two angles because the
-	// outer rings are close together.
-	const RING_LABELS = [1, 2, 3, 4, 5, 6].map((k) => {
-		const a = ((k % 2 ? 35 : 60) * Math.PI) / 180;
-		return { k, pos: [Math.sqrt(k) * Math.cos(a), Math.sqrt(k) * Math.sin(a), 0.2] };
+	// Rings at every whole-number z out to the plot's corners (z = 2·EXTENT² ≈ 20.5 there),
+	// so they fill the whole square; the outermost are clipped at its edges.
+	const RING_MAX = Math.floor(2 * EXTENT * EXTENT);
+
+	// Flash: each new flashKey briefly emphasises every ring, then fades back (~1.2s).
+	$effect(() => {
+		if (!flashKey) return;
+		untrack(() => {
+			gsap.killTweensOf(anim, "flash");
+			anim.flash = 1;
+			gsap.to(anim, { flash: 0, duration: 0.9, delay: 0.3, ease: "power1.in" });
+		});
 	});
 
-	const anim = $state({ lift: 1, bowl: 1, plane: 1, glow: 0, region: 0 });
+	// Hover a ring to see its z: unproject the pointer onto the flat plot, then pick the ring
+	// (whole-number z) whose circle passes within HOVER_PX of it.
+	const HOVER_PX = 7;
+	let hover = $state(null); // { k, x, y } or null
+	const v = new Vector3();
+	function pick(e) {
+		if (rings < 0.5) return (hover = null);
+		const rect = dom.getBoundingClientRect();
+		v.set(
+			((e.clientX - rect.left) / rect.width) * 2 - 1,
+			-((e.clientY - rect.top) / rect.height) * 2 + 1,
+			0
+		).unproject($cameraStore);
+		const r = Math.hypot(v.x, v.y);
+		const k = Math.round(r * r);
+		const inPlot = Math.abs(v.x) <= EXTENT && Math.abs(v.y) <= EXTENT;
+		const distPx = Math.abs(r - Math.sqrt(k)) * zoom;
+		hover = inPlot && k >= 1 && k <= RING_MAX && distPx <= HOVER_PX ? { k, x: v.x, y: v.y } : null;
+	}
+	function clear() {
+		hover = null;
+	}
+	$effect(() => {
+		dom.addEventListener("pointermove", pick);
+		dom.addEventListener("pointerdown", pick);
+		dom.addEventListener("pointerleave", clear);
+		return () => {
+			dom.removeEventListener("pointermove", pick);
+			dom.removeEventListener("pointerdown", pick);
+			dom.removeEventListener("pointerleave", clear);
+		};
+	});
+	$effect(() => {
+		if (rings < 0.5) hover = null;
+	});
 
 	// Same framing rule as the main scene, so the two views match before the collapse.
 	const zoom = $derived(
@@ -89,13 +134,19 @@
 
 <Regions2D cx={circle.cx} cy={circle.cy} r={circle.r} opacity={anim.region} />
 <!-- rings only: no side shading (Regions2D does that) and no boundary (the dashed ring does) -->
-<FeatureRegions2D featureIndex={0} regionOpacity={0} showLine={false} contours={rings} />
-{#if rings > 0.01}
-	{#each RING_LABELS as r (r.k)}
-		<HTML position={r.pos} center pointerEvents="none">
-			<span class="ring-label" style:opacity={rings}>{r.k}</span>
-		</HTML>
-	{/each}
+<FeatureRegions2D
+	featureIndex={0}
+	regionOpacity={0}
+	showLine={false}
+	contours={rings}
+	ringMax={RING_MAX}
+	hoverRing={hover?.k ?? 0}
+	flash={anim.flash}
+/>
+{#if hover}
+	<HTML position={[hover.x, hover.y, 0.4]} pointerEvents="none" zIndexRange={[100, 0]}>
+		<span class="ring-tip"><i>z</i> = {hover.k}</span>
+	</HTML>
 {/if}
 <Axes lift={anim.lift} />
 <Points lift={anim.lift} />
@@ -110,13 +161,20 @@
 />
 
 <style>
-	.ring-label {
-		padding: 0 0.2rem;
+	/* tooltip just above-right of the pointer */
+	.ring-tip {
+		display: block;
+		transform: translate(10px, calc(-100% - 8px));
+		padding: 0.15rem 0.5rem;
 		font-family: var(--font-sans);
-		font-size: var(--12px, 12px);
-		color: #555;
-		background: rgba(255, 255, 255, 0.85);
-		border-radius: 0.2rem;
-		user-select: none;
+		font-size: var(--14px, 14px);
+		white-space: nowrap;
+		color: white;
+		background: #222;
+		border-radius: 0.3rem;
+	}
+
+	.ring-tip i {
+		font-family: var(--font-serif);
 	}
 </style>

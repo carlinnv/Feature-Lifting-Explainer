@@ -56,7 +56,7 @@
 
 	// Entering the "Confused…?" step snaps the plane to a 100% cut (user decision), so the
 	// sentence above describes a perfect split. The perfect range is found once by scanning the
-	// slider's own steps; the plane glides to the nearest perfect height. If it was moved, a
+	// slider's own steps; the plane glides to the middle of that range. If it was moved, a
 	// short note says so.
 	const PLANE_STEP = 0.05;
 	const perfectRange = (() => {
@@ -72,10 +72,15 @@
 		return { lo, hi };
 	})();
 	let snappedFrom = $state(null);
+
+	// "faint rings" text cue: each bump flashes the rings in the 4.4 2D view (CollapseScene).
+	let ringFlash = $state(0);
+	const flashRings = () => ringFlash++;
 	function snapToPerfectCut() {
 		if (perfectRange.lo === null || planeScore.current.correct === circles.length) return;
 		const from = plane.t;
-		const to = Math.min(perfectRange.hi, Math.max(perfectRange.lo, from));
+		// middle of the perfect range, on the slider's step grid (user decision: clearer split)
+		const to = Math.round((perfectRange.lo + perfectRange.hi) / 2 / PLANE_STEP) * PLANE_STEP;
 		snappedFrom = from;
 		gsap.to(plane, { t: to, duration: 0.7, ease: "power2.inOut" });
 	}
@@ -198,7 +203,7 @@
 			{#if split}
 				<div class="view view-collapse" transition:fade={{ duration: 400 }}>
 					<Canvas toneMapping={NoToneMapping}>
-						<CollapseScene contours={step === 7 ? 1 : 0} />
+						<CollapseScene contours={step === 7 ? 1 : 0} flashKey={ringFlash} />
 					</Canvas>
 					<span class="view-label">2D: <i>x</i><sub>1</sub>, <i>x</i><sub>2</sub></span>
 				</div>
@@ -404,14 +409,26 @@
 							</p>
 						{/if}
 						<p>
-							The faint rings in the 2D view connect spots that share the same <i>z</i> (labeled 1
-							to 6). A cut at one <i>z</i> value has to follow one of these rings, and because
+							The
+							<!-- hovering / focusing / tapping this flashes every ring in the 2D view -->
+							<span
+								class="ring-cue"
+								role="button"
+								tabindex="0"
+								onmouseenter={flashRings}
+								onfocus={flashRings}
+								onclick={flashRings}
+								onkeydown={(e) => (e.key === "Enter" || e.key === " ") && flashRings()}
+								>faint rings</span
+							>
+							in the 2D view connect spots that share the same <i>z</i> (hover over a ring to see
+							its <i>z</i>). A cut at one <i>z</i> value has to follow one of these rings, and because
 							<i>z</i> measures distance from the center, every ring is a circle. The cut itself is
 							flat. The curve comes from the feature.
 						</p>
 						<p>
-							Move the plane and watch the circle: at a height of 2 it sits exactly on ring 2, and at
-							4 it sits exactly on ring 4.
+							Move the plane and watch the circle: at a height of 2 it sits exactly on the
+							<i>z</i> = 2 ring, and at 4 it sits exactly on the <i>z</i> = 4 ring.
 						</p>
 						<label class="slider">
 							<span class="slider-label">Plane height</span>
@@ -794,6 +811,21 @@
 		stroke-width: 2;
 		stroke-linecap: round;
 		stroke-linejoin: round;
+	}
+
+	/* "faint rings": hover/focus/tap to flash the rings in the 2D view */
+	.ring-cue {
+		font-weight: 700;
+		text-decoration: underline dotted;
+		text-underline-offset: 0.2em;
+		cursor: pointer;
+	}
+
+	.ring-cue:hover,
+	.ring-cue:focus-visible {
+		background: var(--color-gray-100);
+		border-radius: 0.2em;
+		outline: none;
 	}
 
 	.snap-note {

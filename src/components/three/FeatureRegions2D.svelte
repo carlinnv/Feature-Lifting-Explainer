@@ -14,7 +14,7 @@
 
 	// opacity: both layers. regionOpacity: just the blue/red side shading (the boundary line
 	// stays) — 4.5 keeps the sides hidden until the challenge is solved (user decision).
-	// contours (0 → 1): faint level-set rings where the feature equals 1, 2, …, RING_MAX, drawn
+	// contours (0 → 1): faint level-set rings where the feature equals 1, 2, …, ringMax, drawn
 	// under the points (used in 4.4's 2D view). Off by default.
 	// showLine: draw the gold boundary f = t (4.4 turns it off; it has its own dashed ring).
 	let {
@@ -24,11 +24,14 @@
 		opacity = 1,
 		regionOpacity = 1,
 		contours = 0,
-		showLine = true
+		showLine = true,
+		ringMax = 6, // highest ring drawn (z = 1 … ringMax)
+		hoverRing = 0, // ring to emphasise (the one under the pointer); 0 = none
+		flash = 0 // 0 → 1: emphasise every ring at once (the "faint rings" text highlight)
 	} = $props();
 
-	const RING_MAX = 6;
 	const RING_COLOR = "#7a7a7a";
+	const RING_STRONG = "#2b2b2b"; // emphasised (hovered / flashing) ring colour
 
 	const TINT = 0.14;
 	const LINE_COLOR = "#b88a00"; // same gold as the 3D ring / plane
@@ -58,8 +61,11 @@
 				uRegion: { value: 1 },
 				uLinePx: { value: LINE_PX },
 				uContours: { value: 0 },
-				uRingMax: { value: RING_MAX },
-				uRingColor: { value: new Color(RING_COLOR) }
+				uRingMax: { value: 6 },
+				uRingColor: { value: new Color(RING_COLOR) },
+				uRingStrong: { value: new Color(RING_STRONG) },
+				uHoverRing: { value: 0 },
+				uFlash: { value: 0 }
 			},
 			vertexShader: /* glsl */ `
 				varying vec2 vPos;
@@ -82,6 +88,9 @@
 				uniform float uContours;
 				uniform float uRingMax;
 				uniform vec3 uRingColor;
+				uniform vec3 uRingStrong;
+				uniform float uHoverRing;
+				uniform float uFlash;
 				varying vec2 vPos;
 				void main() {
 					float x = vPos.x;
@@ -92,14 +101,17 @@
 					if (uMode == 0) {
 						vec3 region = d > 0.0 ? uAbove : uBelow;
 						float a = uTint * uRegion;
-						// level-set rings at f = 1, 2, …, uRingMax (~1px wide on screen)
+						// level-set rings at f = 1, 2, …, uRingMax: ~1px wide normally, ~2px and darker
+						// when emphasised (the hovered ring, or all rings during a flash)
 						float k = floor(f + 0.5);
 						float cpx = abs(f - k) / max(fwidth(f), 1e-6);
-						float ring = (k >= 1.0 && k <= uRingMax)
-							? (1.0 - smoothstep(0.5, 1.5, cpx)) * uContours
-							: 0.0;
-						vec3 col = mix(region, uRingColor, ring);
-						gl_FragColor = vec4(col, max(a, ring * 0.6) * uOpacity);
+						float inRange = (k >= 1.0 && k <= uRingMax) ? 1.0 : 0.0;
+						float hov = (uHoverRing > 0.5 && abs(k - uHoverRing) < 0.5) ? 1.0 : 0.0;
+						float emph = max(uFlash, hov);
+						float w = mix(0.5, 1.0, emph);
+						float ring = inRange * (1.0 - smoothstep(w, w + 1.0, cpx)) * uContours;
+						vec3 col = mix(region, mix(uRingColor, uRingStrong, emph), ring);
+						gl_FragColor = vec4(col, max(a, ring * mix(0.35, 0.95, emph)) * uOpacity);
 					} else {
 						// distance to the boundary in pixels (first-order), for a constant-width line
 						float px = abs(d) / max(fwidth(d), 1e-6);
@@ -129,6 +141,9 @@
 			u.uOpacity.value = opacity;
 			u.uRegion.value = regionOpacity;
 			u.uContours.value = contours;
+			u.uRingMax.value = ringMax;
+			u.uHoverRing.value = hoverRing;
+			u.uFlash.value = flash;
 		}
 		invalidate();
 	});

@@ -818,3 +818,44 @@
 **Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Headless Chrome (desktop 1400×900), no console errors: plane at 1.0 in step 6 (88%) → in the "Confused…?" step it reads "z < 2.15", slider 2.15, with the note "from z = 1"; plane at 5.0 (53%) → "z < 3.6", slider 3.60, note "from z = 5"; plane at 2.9 (100%) → stays 2.9, no note; moving the slider there to 2 afterward works ("z < 2").
 
 **Next Steps:** User review (nearest vs. middle snap).
+
+## 2026-11-20: Snap to the middle of the 100% range
+
+**Task:** "snap to the middle instead"
+
+**Context:** The user had edited the snap note themselves since the last entry (now: "(We moved the plane to a height where every point is correctly classified.)").
+
+**Changes (completed, by Claude Code):** When the "Confused…?" step snaps the plane, it now goes to the middle of the 100% range (2.15–3.60 → 2.875, rounded to the slider's 0.05 grid → 2.90), not the nearest edge. A cut that is already 100% is still left alone.
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** None.
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Headless Chrome (desktop 1400×900), no console errors: plane at 1.0 → snaps to 2.9 (note shown); plane at 5.0 → snaps to 2.9 (note shown); plane already at 2.9 (100%) → unchanged, no note; the slider still moves freely afterward (2.0).
+
+**Next Steps:** User review.
+
+## 2026-11-20: Rings across the whole plot, hover for z, "faint rings" flash
+
+**Task:** "instead of labeling the 6 rings, draw contour rings extending throughout the entire graph. allow the user to hover over each one to view its z value. On the text 'faint rings', highlight the rings for a second and fade out"
+
+**Changes (completed, by Claude Code):**
+- **Rings:** the 1–6 number labels are removed. Rings are now drawn at every whole-number z from 1 to 20 (z ≈ 20.5 at the plot's corners), so they fill the whole 2D plot; the outermost are clipped at its edges. Still only in the "Confused…?" step, after the collapse.
+- **Hover for z:** hovering near a ring (within 7px) darkens and thickens that ring (~2px) and shows a "z = 4"-style tooltip next to the pointer. Tapping does the same on touch screens. The pointer is converted to plot coordinates with the actual camera, so the highlighted ring is always the one under the pointer.
+- **"faint rings" cue:** the phrase is now bold with a dotted underline. Hovering it (or focusing it with the keyboard, or tapping it) flashes every ring dark and thick, holds ~0.3s, then fades back to faint over ~0.9s. It is keyboard accessible (`role="button"`, Enter/Space).
+- **Text updates** (Claude Code): the parenthetical "(labeled 1 to 6)" → "(hover over a ring to see its z)"; "sits exactly on ring 2 … ring 4" → "on the z = 2 ring … the z = 4 ring", since rings no longer have labels.
+- The shader gained a configurable ring count, a hovered-ring emphasis, and a flash emphasis (all off by default, so 4.5 is unaffected).
+
+**Files Modified:** `src/components/three/FeatureRegions2D.svelte`, `src/components/three/CollapseScene.svelte`, `src/components/Index.svelte`
+
+**Issues Encountered:**
+- With 20 rings, the outer ones (which get closer together) looked heavy rather than faint at the previous ring opacity.
+- In testing, a pointer placed by the test script at the z = 16 ring reported z = 17. The test's own estimate of the screen position (from an assumed zoom) was ~1.5% off. The app uses the real camera, and the screenshot confirmed the highlighted ring and tooltip match the ring under the pointer.
+
+**Resolution:** Lowered the resting ring opacity (0.6 → 0.35); hover/flash emphasis unchanged. The z = 16 result was a test-script approximation, not an app bug.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Headless Chrome at desktop 1400×900 and phone 390×844, no console errors at either size: no ring labels; hovering at radii 1, 2, 3 shows z = 1, 4, 9; between rings (r = 1.5) it picks the nearest (z = 2); no ring hover at step 6. Screenshots: rings fill the plot; the hovered ring is emphasised with its tooltip; hovering "faint rings" shows all rings dark, then faint again ~1.6s later. (An automated "screenshot after = before" check for the fade failed only because the cursor was still over the text, whose hover background changed the image; the screenshots themselves show the rings back to faint.)
+
+**Next Steps:** User review.

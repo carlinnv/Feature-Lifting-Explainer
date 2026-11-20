@@ -24,6 +24,14 @@
 	import { fade } from "svelte/transition";
 	import { circles } from "$data/circles.js";
 
+	// Title arrow: glide down to the first section (jump instead if the reader prefers
+	// reduced motion).
+	let explainerEl = $state();
+	function scrollToStart() {
+		const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		explainerEl?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+	}
+
 	let scrollIndex = $state(undefined);
 	// Before any step is in view, show the first step's visual.
 	const step = $derived(scrollIndex ?? 0);
@@ -80,13 +88,23 @@
 	});
 </script>
 
+<!-- Full-screen title, separate from the first section; the arrow glides down to it. -->
 <header class="intro">
-	<h1>Feature Lifting</h1>
-	<p class="dek">How adding a new feature lets a straight-line classifier solve a curved problem.</p>
+	<div class="intro-inner">
+		<h1>Feature Lifting</h1>
+		<p class="dek">
+			How adding a new feature lets a straight-line classifier solve a curved problem.
+		</p>
+	</div>
+	<button class="scroll-arrow" aria-label="Start the explainer" onclick={scrollToStart}>
+		<svg viewBox="0 0 24 24" aria-hidden="true">
+			<path d="M6 9l6 6 6-6" />
+		</svg>
+	</button>
 </header>
 
 <svelte:boundary onerror={(e) => console.error(e)}>
-	<section class="explainer">
+	<section class="explainer" bind:this={explainerEl}>
 		<div class="visual" class:split class:challenge={inChallenge}>
 			{#if inChallenge}
 				<!-- 3D view only after the challenge is solved; the 2D view then slides to the right half -->
@@ -339,16 +357,83 @@
 </svelte:boundary>
 
 <style>
+	/* Title screen: fills the first viewport so it reads as its own page, with a rule
+	   separating it from the first section. */
 	.intro {
-		max-width: 40rem;
-		margin: 0 auto;
-		padding: 20vh 1.5rem 10vh;
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		min-height: 100vh;
+		min-height: 100svh;
+		padding: 0 1.5rem;
 		text-align: center;
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.intro-inner {
+		max-width: 40rem;
+	}
+
+	.intro h1 {
+		margin: 0 0 1rem;
+		font-size: clamp(2.5rem, 7vw, 4.5rem);
+		line-height: 1.05;
 	}
 
 	.dek {
+		margin: 0;
 		color: var(--color-fg-light);
 		font-size: var(--20px, 20px);
+	}
+
+	.scroll-arrow {
+		position: absolute;
+		bottom: 2.5rem;
+		left: 50%;
+		transform: translateX(-50%);
+		display: grid;
+		place-items: center;
+		width: 3rem;
+		height: 3rem;
+		padding: 0;
+		color: var(--color-fg);
+		background: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: 50%;
+		cursor: pointer;
+	}
+
+	.scroll-arrow:hover,
+	.scroll-arrow:focus-visible {
+		border-color: var(--color-gray-800);
+	}
+
+	.scroll-arrow svg {
+		width: 1.5rem;
+		height: 1.5rem;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		.scroll-arrow {
+			animation: arrow-bob 1.8s ease-in-out infinite;
+		}
+	}
+
+	@keyframes arrow-bob {
+		0%,
+		100% {
+			transform: translate(-50%, 0);
+		}
+		50% {
+			transform: translate(-50%, 6px);
+		}
 	}
 
 	.explainer {

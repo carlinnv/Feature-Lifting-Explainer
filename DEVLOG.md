@@ -474,3 +474,26 @@
 **Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds. Headless Chrome (desktop 1400×900), no console errors: the readout is hidden at the start, after a wrong Submit (message still shows "50 of 100"), after moving the plane, and at 100% before Submit; it appears showing 100% after the correct Submit; it is hidden again after scrolling to step 6 and back. Screenshot checked: at 100% before Submit, the card shows only the features, the slider, and the Submit button. Phone size not tested.
 
 **Next Steps:** User review. Deferred: confusion area #2, plane tilt.
+
+---
+
+# Phase 2: UI and clarity
+
+## 2026-11-20: Title screen and scroll arrow
+
+**Task:** "all the main features are done. we can now work on the UI and making the concepts more intuitive/clear. first, make the title 'Feature Lifting' distinctly separate from the first section. create an arrow below the description ('How adding a new feature...') that glides the user down to the first section"
+
+**Changes (completed, by Claude Code):**
+- The title block is now a full-screen title page (`min-height: 100vh`, with `100svh` for mobile browser toolbars). The title and description are centered, the title is larger (responsive `clamp`), and a thin rule at the bottom separates it from the first section.
+- Added a round arrow button near the bottom of the title screen. Clicking it smoothly scrolls to the top of the first section. It bobs gently to invite a click. With "prefers reduced motion", the bobbing is off and the scroll jumps. It's a real `<button>` with an accessible label ("Start the explainer"), so it works with the keyboard.
+- Placement choice (Claude Code): the arrow sits at the bottom of the title screen (a common scroll-cue position), not immediately under the description text.
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** None.
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds. Headless Chrome at desktop 1400×900 and phone 390×844, no console errors at either size: the title screen is exactly one viewport tall (900 / 844px) and the first section starts right below it. Clicking the arrow scrolled smoothly (sampled scroll positions 641 → 880 → 900 on desktop, 617 → 830 → 844 on phone) and landed with the first section at the top of the screen and step 0 active. Screenshots checked at both sizes.
+
+**Next Steps:** More UI/clarity improvements as directed by the user. Deferred: confusion area #2, plane tilt.

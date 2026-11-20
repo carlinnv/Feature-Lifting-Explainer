@@ -409,7 +409,7 @@
 							</p>
 						{/if}
 						<p>
-							The
+							Each of the
 							<!-- hovering / focusing / tapping this flashes every ring in the 2D view -->
 							<span
 								class="ring-cue"
@@ -421,14 +421,13 @@
 								onkeydown={(e) => (e.key === "Enter" || e.key === " ") && flashRings()}
 								>faint rings</span
 							>
-							in the 2D view connect spots that share the same <i>z</i> (hover over a ring to see
-							its <i>z</i>). A cut at one <i>z</i> value has to follow one of these rings, and because
-							<i>z</i> measures distance from the center, every ring is a circle. The cut itself is
-							flat. The curve comes from the feature.
+							marks every spot with the same <i>z</i>, like the contour lines on a hiking map
+							(hover over one to see its <i>z</i>). Because <i>z</i> only depends on how far a spot
+							is from the center, every ring is a circle.
 						</p>
 						<p>
-							Move the plane and watch the circle: at a height of 2 it sits exactly on the
-							<i>z</i> = 2 ring, and at 4 it sits exactly on the <i>z</i> = 4 ring.
+							The classifier's boundary is just the spots where <i>z</i> = {cutValue} exactly, so
+							it's a ring like these.
 						</p>
 						<label class="slider">
 							<span class="slider-label">Plane height</span>

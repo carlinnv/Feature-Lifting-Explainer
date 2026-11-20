@@ -859,3 +859,38 @@
 **Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Headless Chrome at desktop 1400×900 and phone 390×844, no console errors at either size: no ring labels; hovering at radii 1, 2, 3 shows z = 1, 4, 9; between rings (r = 1.5) it picks the nearest (z = 2); no ring hover at step 6. Screenshots: rings fill the plot; the hovered ring is emphasised with its tooltip; hovering "faint rings" shows all rings dark, then faint again ~1.6s later. (An automated "screenshot after = before" check for the fade failed only because the cursor was still over the text, whose hover background changed the image; the screenshots themselves show the rings back to faint.)
 
 **Next Steps:** User review.
+
+## 2026-11-20: "faint rings" paragraph reworded
+
+**Task:** "the 'faint rings' paragraph may still be confusing. adjust the wording to remove redundancy and improve intuition"
+
+**Changes (completed, by Claude Code; wording by Claude Code):** Split into two shorter paragraphs. The "faint rings" flash cue is kept.
+- "Each of the faint rings marks every spot with the same z, like the contour lines on a hiking map (hover over one to see its z). Because z only depends on how far a spot is from the center, every ring is a circle."
+- "The classifier's boundary is just the spots where z = {reader's cut} exactly, so it's one more ring like these, and a circle too. The cut is flat; the circle comes from the feature."
+- Reasoning: replaced the abstract "connect spots that share the same z" with a contour-map analogy. The old "a cut … has to follow one of these rings" wasn't literally true (a cut at 2.9 falls *between* the drawn z = 2 and z = 3 rings) and didn't say why; it is now "the boundary is the spots where z equals the cut, so it is itself a ring". Removed the repeated "The cut itself is flat. The curve comes from the feature." The cut value is live (same `cutValue` as the earlier sentence).
+
+**Files Modified:** `src/components/Index.svelte`
+
+**Issues Encountered:** None.
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Headless Chrome (desktop 1400×900), no console errors: the rendered text reads as above with "z = 2.9" filled in, and the "faint rings" cue is still present.
+
+**Next Steps:** User review of the wording.
+
+## 2026-11-20: Section 4.5, red/blue side shading shown again
+
+**Task:** "for the 'Your turn' section, add the red and blue highlights back"
+
+**Changes (completed, by Claude Code):** Interpreted "highlights" as the blue/red predicted-class shading on the 4.5 2D plot (the card's colored "blue"/"red" words were still present). The shading is shown again at all times and updates live with the chosen feature and plane height, reversing the earlier "only highlight the sides once solved" change. The 3D view, accuracy readout, and "Why does it work?" note are still gated behind a correct Submit. The now-unused fade logic was removed from `ChallengeScene2D.svelte`; the shader's `regionOpacity` option remains for possible reuse.
+
+**Files Modified:** `src/components/three/ChallengeScene2D.svelte`
+
+**Issues Encountered:** None. Note: with shading visible, the reader can see which regions are mislabeled while solving, which acts as a hint; this is the intended effect of restoring it.
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no warnings. Headless Chrome (desktop 1400×900), no console errors: before solving, the screenshot shows the shading (with x₁² + x₂², inside the circle red and the corners blue); the submit flow is unchanged (wrong Submit message at 50%, readout hidden until a correct Submit, 3D view and note shown after it, reset after scrolling away and back).
+
+**Next Steps:** User review.

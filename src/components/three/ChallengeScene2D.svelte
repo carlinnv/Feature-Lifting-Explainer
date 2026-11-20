@@ -1,10 +1,9 @@
 <script>
 	// Section 4.5, right view: the XOR points on the flat 2D plot with the decision boundary
-	// f(x1, x2) = t drawn in gold. The blue/red predicted-class shading is hidden until the
-	// challenge is solved (user decision), then fades in.
+	// f(x1, x2) = t drawn in gold, and the blue/red predicted-class shading on either side.
+	// The shading is always shown and updates live with the feature and plane height (user
+	// decision; it was briefly hidden until the challenge was solved).
 	import { T, useThrelte } from "@threlte/core";
-	import { untrack } from "svelte";
-	import { gsap } from "gsap";
 	import { EXTENT } from "$data/circles.js";
 	import { xor } from "$data/xor.js";
 	import { challenge, challengeScore } from "$stores/explainer.svelte.js";
@@ -19,15 +18,6 @@
 
 	const featureIndex = $derived(FEATURES.findIndex((f) => f.id === challenge.featureId));
 	const aboveLabel = $derived(challengeScore.current.aboveLabel);
-
-	const anim = $state({ region: untrack(() => (challenge.revealed ? 1 : 0)) });
-	$effect(() => {
-		const on = challenge.revealed;
-		untrack(() => {
-			gsap.killTweensOf(anim);
-			gsap.to(anim, { region: on ? 1 : 0, duration: 0.8, ease: "power1.out" });
-		});
-	});
 </script>
 
 <T.OrthographicCamera
@@ -38,6 +28,6 @@
 	oncreate={(cam) => cam.lookAt(0, 0, 0)}
 />
 
-<FeatureRegions2D {featureIndex} t={challenge.t} {aboveLabel} regionOpacity={anim.region} />
+<FeatureRegions2D {featureIndex} t={challenge.t} {aboveLabel} />
 <Axes lift={0} />
 <Points points={xor} lift={0} heights={xor.map(() => 0)} />

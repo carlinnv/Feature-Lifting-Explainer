@@ -384,7 +384,7 @@
 				     every such cut is a circle. Draft wording by Claude Code. -->
 				<div class="step" class:active={step === 7}>
 					<div class="card">
-						<h3 class="card-title">How can a flat cut make a circle?</h3>
+						<h3 class="card-title">How can a linear classifier produce a circle?</h3>
 						<p>
 							To the classifier, the plane is just <strong>a cut at one value of <i>z</i></strong>:
 							<!-- uses the plane height the reader chose (shared plane.t), live -->
@@ -425,9 +425,7 @@
 							So the classifier is still linear: in the features it's given (<i>x</i><sub>1</sub>,
 							<i>x</i><sub>2</sub> and <i>z</i>), its boundary is perfectly flat. The circle only
 							appears when we look back at the original <i>x</i><sub>1</sub>, <i>x</i><sub>2</sub>
-							plot. Since <i>z</i> measures how far a spot is from the center, "<i>z</i> &lt;
-							{cutValue}" really means "close to the center", and all the spots close enough to the
-							center fill in a circle.
+							plot.
 						</p>
 						<label class="slider">
 							<span class="slider-label">Plane height</span>

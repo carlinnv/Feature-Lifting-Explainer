@@ -953,3 +953,23 @@
 **Testing (run by Claude Code; not yet tested by the user):** `npm run build` succeeds with no new warnings. Headless Chrome at desktop 1400×900 and phone 390×844, no console errors: new paragraph and slider label render; wrong Submit shows "Not quite: 50 of 100 … Try moving the cut or picking a different feature."; with x₁·x₂ at cut 0, Submit reveals the 3D view, 100% readout and the new note; scrolling away and back resets.
 
 **Next Steps (planned, not done):** Open review items: squared vs. plain distance (4.2), "are we allowed to construct features?" (4.2), horizontal-only plane (4.3).
+
+## 2026-11-20: GitHub Pages deployment setup
+
+**Task:** "i have published it on github pages pointing to main. how do i make it run this"
+
+**Changes (completed, by Claude Code):**
+- Problem: Pages "deploy from branch: main" serves the repo's source files, but the SvelteKit app only exists as a website after `npm run build` (output in `build/`, which is gitignored).
+- Added `.github/workflows/deploy.yml`: on every push to `main` (or a manual run), installs with `npm ci`, builds with `BASE_PATH=/<repo name>`, and deploys `build/` with the official Pages actions.
+- `svelte.config.js`: `paths.base` reads `BASE_PATH` (empty when unset), since a project site is served under `/Feature-Lifting-Explainer/`. Local `dev`/`preview` are unaffected.
+- Requires one manual step by the user: repo Settings → Pages → Source: "GitHub Actions".
+
+**Files Modified:** `.github/workflows/deploy.yml` (new), `svelte.config.js`
+
+**Issues Encountered:** None.
+
+**Resolution:** N/A.
+
+**Testing (run by Claude Code; not yet tested by the user):** Built with `BASE_PATH=/Feature-Lifting-Explainer` and served the output from a `/Feature-Lifting-Explainer/` subfolder with a plain static server, mimicking Pages; headless Chrome ran the full 4.5 challenge flow there with no console errors. A normal `npm run build` still works. The workflow itself has not run on GitHub yet.
+
+**Next Steps (planned):** User switches the Pages source to GitHub Actions and pushes; check the Actions run and the live URL.

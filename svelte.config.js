@@ -14,7 +14,12 @@ const config = {
 	},
 	preprocess,
 	kit: {
-		adapter: adapterStatic({ strict: false })
+		adapter: adapterStatic({ strict: false }),
+		// GitHub Pages serves the site under /<repo-name>/; the deploy workflow sets BASE_PATH.
+		// Empty locally, so `npm run dev` / `preview` still run at the root.
+		paths: {
+			base: process.env.BASE_PATH ?? ""
+		}
 	}
 };
 
